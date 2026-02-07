@@ -1,5 +1,5 @@
 ---
-title:"Flutter项目打包apk"
+title: "Flutter项目打包apk"
 description: "Flutter项目打包apk"
 publishDate: 2026-02-07
 updatedDate: 2026-02-07
