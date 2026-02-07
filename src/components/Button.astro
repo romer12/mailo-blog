@@ -1,0 +1,217 @@
+---
+import type { HTMLTag, Polymorphic } from 'astro/types';
+
+type Props<Tag extends HTMLTag> = Polymorphic<{ as: Tag }> & {
+  as?: string;
+  title?: string;
+  href?: string;
+  variant?: 'button' | 'pill' | 'back' | 'ahead';
+  target?: string;
+  class?: string;
+};
+
+const { 
+  as: Tag = 'a', 
+  class: className, 
+  title, 
+  href, 
+  variant = 'button', 
+  ...props 
+} = Astro.props;
+
+const classes = [
+  'btn',
+  'group',
+  'inline-flex',
+  'items-center',
+  'gap-1',
+  'rounded-lg',
+  'bg-muted',
+  'border',
+  'px-2',
+  'py-1',
+  'text-sm',
+  'transition-all',
+  'hover:bg-card',
+  'no-underline',
+  !href && 'cursor-default',
+  variant === 'pill' && 'rounded-xl',
+  className
+].filter(Boolean).join(' ');
+---
+
+<Tag
+  class={classes}
+  href={href}
+  data-astro-prefetch
+  {...props}
+>
+  <slot name="before">
+    {variant === 'back' && (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="arrow-icon"
+      >
+        <line
+          x1="19"
+          y1="12"
+          x2="5"
+          y2="12"
+          class="arrow-line-back"
+        />
+        <polyline
+          points="12 19 5 12 12 5"
+          class="arrow-head-back"
+        />
+      </svg>
+    )}
+  </slot>
+  
+  <slot>
+    {title && <p class="my-0">{title}</p>}
+  </slot>
+  
+  <slot name="after">
+    {variant === 'ahead' && (
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke-width="2.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        class="arrow-icon"
+      >
+        <line
+          x1="5"
+          y1="12"
+          x2="19"
+          y2="12"
+          class="arrow-line-ahead"
+        />
+        <polyline
+          points="12 5 19 12 12 19"
+          class="arrow-head-ahead"
+        />
+      </svg>
+    )}
+  </slot>
+</Tag>
+
+<style>
+  .btn {
+    color: var(--text-secondary);
+    text-decoration: none;
+  }
+
+  .bg-muted {
+    background-color: var(--hover-bg);
+  }
+
+  .border {
+    border: 1px solid var(--border-color);
+  }
+
+  .hover\:bg-card:hover {
+    background-color: var(--card-bg);
+  }
+
+  .arrow-icon {
+    stroke: var(--text-secondary);
+    transition: stroke 0.3s ease;
+  }
+
+  .group:hover .arrow-icon {
+    stroke: #6366f1;
+  }
+
+  /* Back arrow animations */
+  .arrow-line-back {
+    transform: translateX(12px) scaleX(0);
+    transition: all 0.3s ease;
+  }
+
+  .arrow-head-back {
+    transform: translateX(4px);
+    transition: all 0.3s ease;
+  }
+
+  .group:hover .arrow-line-back {
+    transform: translateX(0) scaleX(1);
+  }
+
+  .group:hover .arrow-head-back {
+    transform: translateX(0);
+  }
+
+  /* Ahead arrow animations */
+  .arrow-line-ahead {
+    transform: translateX(16px) scaleX(0);
+    transition: all 0.3s ease;
+  }
+
+  .arrow-head-ahead {
+    transform: translateX(0);
+    transition: all 0.3s ease;
+  }
+
+  .group:hover .arrow-line-ahead {
+    transform: translateX(4px) scaleX(1);
+  }
+
+  .group:hover .arrow-head-ahead {
+    transform: translateX(4px);
+  }
+
+  .rounded-xl {
+    border-radius: 0.75rem;
+  }
+
+  .cursor-default {
+    cursor: default;
+  }
+
+  .no-underline {
+    text-decoration: none;
+  }
+
+  .inline-flex {
+    display: inline-flex;
+  }
+
+  .items-center {
+    align-items: center;
+  }
+
+  .gap-1 {
+    gap: 0.25rem;
+  }
+
+  .px-2 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .py-1 {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
+
+  .text-sm {
+    font-size: 0.875rem;
+  }
+
+  .my-0 {
+    margin-top: 0;
+    margin-bottom: 0;
+  }
+</style>

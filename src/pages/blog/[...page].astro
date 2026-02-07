@@ -1,0 +1,363 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import ArticleRow from "../../components/ArticleRow.astro";
+import { getCollection } from "astro:content";
+import type { GetStaticPaths, Page } from 'astro';
+
+export const getStaticPaths = (async ({ paginate }) => {
+	// 获取所有博客文章
+	const allPosts = await getCollection("blog", ({ data }) => {
+		return data.draft !== true;
+	});
+
+	// 按发布日期排序，置顶文章排在最前
+	const posts = allPosts.sort((a, b) => {
+		// 先按置顶排序
+		if (a.data.pinned && !b.data.pinned) return -1;
+		if (!a.data.pinned && b.data.pinned) return 1;
+		// 再按发布日期排序
+		return b.data.publishDate.valueOf() - a.data.publishDate.valueOf();
+	});
+
+	// 每页显示3篇文章
+	return paginate(posts, { pageSize: 3 });
+}) satisfies GetStaticPaths;
+
+const { page } = Astro.props as { page: Page };
+
+// 获取所有分类和标签
+const allPosts = await getCollection("blog", ({ data }) => {
+	return data.draft !== true;
+});
+const categories = [
+	...new Set(allPosts.map((post) => post.data.category).filter(Boolean)),
+];
+const allTags = allPosts.flatMap((post) => post.data.tags);
+const tags = [...new Set(allTags)];
+---
+
+<Layout title="所有文章" showSidebar={true} categories={categories} tags={tags}>
+	<div class="blog-page">
+		<header class="page-header">
+			<h1 class="page-title">所有文章</h1>
+			<p class="page-description">
+				共 {page.total} 篇文章 · 第 {page.currentPage} / {page.lastPage} 页
+			</p>
+		</header>
+
+		<section class="posts-section">
+			<div class="posts-grid">
+				{
+					page.data.map((post) => (
+						<ArticleRow
+							slug={post.slug}
+							title={post.data.title}
+							description={post.data.description}
+							publishDate={post.data.publishDate}
+							category={post.data.category}
+							tags={post.data.tags}
+							heroImage={post.data.heroImage}
+							pinned={post.data.pinned}
+						/>
+					))
+				}
+			</div>
+
+			<!-- 分页导航 -->
+			{page.lastPage > 1 && (
+				<nav class="pagination" aria-label="分页导航">
+					<div class="pagination-info">
+						显示 {page.start + 1} - {page.end + 1} / 共 {page.total} 篇
+					</div>
+					
+					<div class="pagination-controls">
+						{page.url.prev ? (
+							<a href={page.url.prev} class="pagination-btn prev-btn" aria-label="上一页">
+								<i class="fas fa-chevron-left"></i>
+								<span>上一页</span>
+							</a>
+						) : (
+							<span class="pagination-btn prev-btn disabled">
+								<i class="fas fa-chevron-left"></i>
+								<span>上一页</span>
+							</span>
+						)}
+
+						<div class="pagination-numbers">
+							{page.currentPage > 2 && (
+								<a href="/blog" class="pagination-number">1</a>
+							)}
+							
+							{page.currentPage > 3 && (
+								<span class="pagination-ellipsis">...</span>
+							)}
+							
+							{page.currentPage > 1 && (
+								<a href={page.currentPage === 2 ? '/blog' : `/blog/${page.currentPage - 1}`} class="pagination-number">
+									{page.currentPage - 1}
+								</a>
+							)}
+							
+							<span class="pagination-number active" aria-current="page">
+								{page.currentPage}
+							</span>
+							
+							{page.currentPage < page.lastPage && (
+								<a href={`/blog/${page.currentPage + 1}`} class="pagination-number">
+									{page.currentPage + 1}
+								</a>
+							)}
+							
+							{page.currentPage < page.lastPage - 2 && (
+								<span class="pagination-ellipsis">...</span>
+							)}
+							
+							{page.currentPage < page.lastPage - 1 && (
+								<a href={`/blog/${page.lastPage}`} class="pagination-number">
+									{page.lastPage}
+								</a>
+							)}
+						</div>
+
+						{page.url.next ? (
+							<a href={page.url.next} class="pagination-btn next-btn" aria-label="下一页">
+								<span>下一页</span>
+								<i class="fas fa-chevron-right"></i>
+							</a>
+						) : (
+							<span class="pagination-btn next-btn disabled">
+								<span>下一页</span>
+								<i class="fas fa-chevron-right"></i>
+							</span>
+						)}
+					</div>
+				</nav>
+			)}
+		</section>
+	</div>
+</Layout>
+
+<style lang="scss">
+	@use "../../styles/variables.scss" as *;
+
+	.blog-page {
+		width: 100%;
+	}
+
+	.page-header {
+		background: linear-gradient(
+			135deg,
+			rgba($primary, 0.1),
+			rgba($secondary, 0.1)
+		);
+		border-radius: $radius-lg;
+		padding: 40px 32px;
+		margin-bottom: 32px;
+		text-align: center;
+		position: relative;
+		overflow: hidden;
+
+		&::before {
+			content: "";
+			position: absolute;
+			top: -50%;
+			right: -50%;
+			width: 200%;
+			height: 200%;
+			background: radial-gradient(
+				circle,
+				rgba($primary, 0.1) 0%,
+				transparent 70%
+			);
+			animation: rotate 20s linear infinite;
+		}
+
+		.page-title {
+			position: relative;
+			z-index: 1;
+			font-size: 2rem;
+			font-weight: 700;
+			color: var(--text-primary);
+			margin-bottom: 8px;
+			background: linear-gradient(135deg, $primary, $secondary);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+		}
+
+		.page-description {
+			position: relative;
+			z-index: 1;
+			font-size: 1rem;
+			color: var(--text-secondary);
+			margin: 0;
+		}
+	}
+
+	.posts-section {
+		margin-bottom: 40px;
+	}
+
+	.posts-grid {
+		display: grid;
+		gap: 15px;
+		margin-bottom: 32px;
+	}
+
+	.pagination {
+		display: flex;
+		flex-direction: column;
+		gap: 16px;
+		padding: 24px;
+		background: var(--bg-card);
+		border-radius: $radius-lg;
+		box-shadow: var(--shadow-sm);
+	}
+
+	.pagination-info {
+		text-align: center;
+		color: var(--text-secondary);
+		font-size: 0.9rem;
+	}
+
+	.pagination-controls {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 12px;
+		flex-wrap: wrap;
+	}
+
+	.pagination-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 8px 16px;
+		background: var(--bg-secondary);
+		color: var(--text-primary);
+		text-decoration: none;
+		border-radius: $radius-md;
+		font-size: 0.9rem;
+		font-weight: 500;
+		transition: all 0.3s ease;
+		border: 1px solid var(--border-color);
+
+		i {
+			font-size: 0.8rem;
+		}
+
+		&:hover:not(.disabled) {
+			background: $primary;
+			color: white;
+			border-color: $primary;
+			transform: translateY(-2px);
+			box-shadow: 0 4px 12px rgba($primary, 0.3);
+		}
+
+		&.disabled {
+			opacity: 0.5;
+			cursor: not-allowed;
+		}
+	}
+
+	.pagination-numbers {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+
+	.pagination-number {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 36px;
+		height: 36px;
+		padding: 0 8px;
+		background: var(--bg-secondary);
+		color: var(--text-primary);
+		text-decoration: none;
+		border-radius: $radius-sm;
+		font-size: 0.85rem;
+		font-weight: 500;
+		transition: all 0.3s ease;
+		border: 1px solid var(--border-color);
+
+		&:hover:not(.active) {
+			background: rgba($primary, 0.1);
+			color: $primary;
+			border-color: $primary;
+		}
+
+		&.active {
+			background: $primary;
+			color: white;
+			border-color: transparent;
+			font-weight: 600;
+			box-shadow: 0 2px 8px rgba($primary, 0.3);
+		}
+	}
+
+	.pagination-ellipsis {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		min-width: 36px;
+		height: 36px;
+		color: var(--text-secondary);
+		font-weight: 600;
+	}
+
+	@keyframes rotate {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	@media (max-width: 768px) {
+		.page-header {
+			padding: 32px 24px;
+
+			.page-title {
+				font-size: 1.75rem;
+			}
+
+			.page-description {
+				font-size: 0.9rem;
+			}
+		}
+
+		.posts-grid {
+			gap: $font-xs;
+		}
+
+		.pagination {
+			padding: 16px;
+		}
+
+		.pagination-controls {
+			gap: 8px;
+		}
+
+		.pagination-btn {
+			padding: 6px 12px;
+			font-size: 0.85rem;
+
+			span {
+				display: none;
+			}
+
+			i {
+				margin: 0;
+			}
+		}
+
+		.pagination-number {
+			min-width: 32px;
+			height: 32px;
+			font-size: 0.85rem;
+		}
+	}
+</style>

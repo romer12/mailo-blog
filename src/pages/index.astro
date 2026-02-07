@@ -1,11 +1,198 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
+import Layout from "../layouts/Layout.astro";
+import ArticleRow from "../components/ArticleRow.astro";
+import { getCollection } from "astro:content";
+import Banner from "../components/Banner.astro";
 
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+// 获取所有博客文章
+const allPosts = await getCollection("blog", ({ data }) => {
+	return data.draft !== true;
+});
+
+// 按发布日期排序，置顶文章排在最前
+const sortedPosts = allPosts.sort((a, b) => {
+	// 先按置顶排序
+	if (a.data.pinned && !b.data.pinned) return -1;
+	if (!a.data.pinned && b.data.pinned) return 1;
+	// 再按发布日期排序
+	return b.data.publishDate.valueOf() - a.data.publishDate.valueOf();
+});
+
+// 首页只显示前10篇
+const posts = sortedPosts.slice(0, 10);
+const hasMore = sortedPosts.length > 10;
+
+// 获取所有分类和标签
+const categories = [
+	...new Set(posts.map((post) => post.data.category).filter(Boolean)),
+];
+const allTags = posts.flatMap((post) => post.data.tags);
+const tags = [...new Set(allTags)];
 ---
 
-<Layout>
-	<Welcome />
+<Layout title="首页" showSidebar={true} categories={categories} tags={tags}>
+	<div class="home-page">
+		<Banner />
+
+		<section class="posts-section">
+			<div class="posts-grid">
+				{
+					posts.map((post) => (
+						<ArticleRow
+							slug={post.slug}
+							title={post.data.title}
+							description={post.data.description}
+							publishDate={post.data.publishDate}
+							category={post.data.category}
+							tags={post.data.tags}
+							heroImage={post.data.heroImage}
+							pinned={post.data.pinned}
+						/>
+					))
+				}
+			</div>
+
+			{
+				hasMore && (
+					<div class="more-link-wrapper">
+						<a href="/blog" class="more-link">
+							<span>查看更多文章</span>
+							<i class="fas fa-arrow-right" />
+						</a>
+					</div>
+				)
+			}
+		</section>
+	</div>
 </Layout>
+
+<style lang="scss">
+	@use "../styles/variables.scss" as *;
+
+	.home-page {
+		width: 100%;
+	}
+
+	.hero-section {
+		background: linear-gradient(
+			135deg,
+			rgba($primary, 0.1),
+			rgba($secondary, 0.1)
+		);
+		border-radius: $radius-lg;
+		padding: 60px 40px;
+		margin-bottom: 40px;
+		text-align: center;
+		position: relative;
+		overflow: hidden;
+
+		&::before {
+			content: "";
+			position: absolute;
+			top: -50%;
+			right: -50%;
+			width: 200%;
+			height: 200%;
+			background: radial-gradient(
+				circle,
+				rgba($primary, 0.1) 0%,
+				transparent 70%
+			);
+			animation: rotate 20s linear infinite;
+		}
+
+		.hero-content {
+			position: relative;
+			z-index: 1;
+		}
+
+		.hero-title {
+			font-size: 2.5rem;
+			font-weight: 700;
+			color: var(--text-primary);
+			margin-bottom: 16px;
+			background: linear-gradient(135deg, $primary, $secondary);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+		}
+
+		.hero-description {
+			font-size: 1.2rem;
+			color: var(--text-secondary);
+			margin: 0;
+		}
+	}
+
+	.posts-section {
+		margin-bottom: 40px;
+	}
+
+	.posts-grid {
+		display: grid;
+		gap: 15px;
+	}
+
+	.more-link-wrapper {
+		margin-top: 32px;
+		text-align: center;
+	}
+
+	.more-link {
+		display: inline-flex;
+		align-items: center;
+		gap: 8px;
+		padding: 12px 32px;
+		background: $primary;
+		color: white;
+		text-decoration: none;
+		border-radius: $radius-lg;
+		font-size: 0.85rem;
+		font-weight: 600;
+		transition: all 0.3s ease;
+		box-shadow: 0 4px 12px rgba($primary, 0.3);
+
+		i {
+			transition: transform 0.3s ease;
+		}
+
+		&:hover {
+			box-shadow: 0 6px 20px rgba($primary, 0.4);
+
+			i {
+				transform: translateX(4px);
+			}
+		}
+
+		&:active {
+			transform: translateY(0);
+		}
+	}
+
+	@keyframes rotate {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	@media (max-width: 768px) {
+		.hero-section {
+			padding: 40px 24px;
+
+			.hero-title {
+				font-size: 2rem;
+			}
+
+			.hero-description {
+				font-size: 1rem;
+			}
+		}
+
+		.posts-grid {
+			gap: $font-xs;
+		}
+	}
+</style>

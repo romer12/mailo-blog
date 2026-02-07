@@ -1,0 +1,129 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+// 获取所有博客文章用于生成分类和标签
+const allPosts = await getCollection('blog', ({ data }) => {
+  return data.draft !== true;
+});
+
+// 获取所有分类和标签
+const categories = [...new Set(allPosts.map(post => post.data.category).filter(Boolean))];
+const allTags = allPosts.flatMap(post => post.data.tags);
+const tags = [...new Set(allTags)];
+---
+
+<Layout 
+  title="关于 - 止于秋水"
+  description="关于本站和作者"
+  showSidebar={true}
+  categories={categories}
+  tags={tags}
+>
+  <div class="about-page">   
+    
+    <div class="about-content">
+      <h1 class="page-title">关于本站</h1>
+      <section class="about-section">
+        <h2>👋 你好</h2>
+        <p>欢迎来到 止于秋水 博客！这是一个基于Go + Astro 构建的现代化博客系统</p>
+      </section>
+    </div>
+  </div>
+</Layout>
+
+<style lang="scss">
+  @use '../styles/variables.scss' as *;
+  
+  .about-page {
+    min-height: 400px;
+  }
+  
+  .page-title {
+    font-size: $font-3xl;
+    font-weight: 700;
+    margin-bottom: $spacing-xl;
+    color: var(--text-primary);
+  }
+  
+  .about-content {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: $radius-lg;
+    padding: $spacing-2xl;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .about-section {
+    margin-bottom: $spacing-2xl;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+    
+    h2 {
+      font-size: $font-2xl;
+      font-weight: 600;
+      margin-bottom: $spacing-md;
+      color: var(--text-primary);
+    }
+    
+    h3 {
+      font-size: $font-lg;
+      font-weight: 600;
+      margin-bottom: $spacing-sm;
+      color: var(--text-primary);
+    }
+    
+    p {
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: $spacing-md;
+    }
+    
+    ul {
+      list-style: none;
+      padding: 0;
+      
+      li {
+        color: var(--text-secondary);
+        line-height: 2;
+        padding-left: $spacing-md;
+        position: relative;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          color: var(--primary-color);
+        }
+      }
+    }
+    
+    a {
+      color: var(--primary-color);
+      text-decoration: none;
+      
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+  
+  .tech-stack {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $spacing-lg;
+    
+    @include tablet {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  .tech-group {
+    padding: $spacing-lg;
+    background-color: var(--bg-secondary);
+    border-radius: $radius-md;
+  }
+  
+</style>

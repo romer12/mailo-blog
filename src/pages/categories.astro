@@ -1,0 +1,217 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+// 获取所有博客文章
+const allPosts = await getCollection('blog', ({ data }) => {
+  return data.draft !== true;
+});
+
+// 统计每个分类的文章数量
+const categoryCount = new Map<string, number>();
+allPosts.forEach(post => {
+  if (post.data.category) {
+    categoryCount.set(
+      post.data.category,
+      (categoryCount.get(post.data.category) || 0) + 1
+    );
+  }
+});
+
+// 生成分类列表
+const categories = Array.from(categoryCount.entries()).map(([name, count]) => ({
+  name,
+  slug: name.toLowerCase().replace(/\s+/g, '-'),
+  article_count: count,
+  description: `${name} 相关的文章`,
+  cover_image: null
+}));
+
+// 获取标签
+const allTags = allPosts.flatMap(post => post.data.tags);
+const tags = [...new Set(allTags)];
+---
+
+<Layout 
+  title="分类 - 止于秋水 博客"
+  description="浏览所有文章分类"
+  showSidebar={true}
+  categories={categories}
+  tags={tags}
+>
+  <div class="categories-page">
+    <h1 class="page-title">文章分类</h1>
+    
+    {categories.length === 0 ? (
+      <div class="empty-state">
+        <p>暂无分类</p>
+      </div>
+    ) : (
+      <div class="categories-grid">
+        {categories.map(category => (
+          <a href={`/categories/${category.slug}`} class="category-card">
+            {category.cover_image && (
+              <div class="category-cover">
+                <img src={category.cover_image} alt={category.name} />
+              </div>
+            )}
+            <div class="category-content">
+              <h2 class="category-name">{category.name}</h2>
+              {category.description && (
+                <p class="category-description">{category.description}</p>
+              )}
+              <span class="category-count">{category.article_count || 0} 篇文章</span>
+            </div>
+          </a>
+        ))}
+      </div>
+    )}
+  </div>
+</Layout>
+
+<style lang="scss">
+  @use '../styles/variables.scss' as *;
+  
+  .categories-page {
+    min-height: 400px;
+  }
+  
+  .page-title {
+    font-size: $font-3xl;
+    font-weight: 700;
+    margin-bottom: $spacing-2xl;
+    color: var(--text-primary);
+    text-align: center;
+    position: relative;
+    padding-bottom: $spacing-md;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, $primary, #a855f7);
+      border-radius: 2px;
+    }
+    
+    @include mobile {
+      font-size: $font-2xl;
+    }
+  }
+  
+  .categories-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: $spacing-xl;
+    
+    @include tablet {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    
+    @include desktop {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  
+  .category-card {
+    display: block;
+    background-color: var(--bg-card);
+    border-radius: $radius-lg;
+    overflow: hidden;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    
+    &:hover {
+      box-shadow: var(--shadow-hover);
+      transform: translateY(-8px);
+      border-color: $primary;
+      
+      .category-cover img {
+        transform: scale(1.1);
+      }
+      
+      .category-name {
+        color: $primary;
+      }
+    }
+  }
+  
+  .category-cover {
+    width: 100%;
+    height: 180px;
+    overflow: hidden;
+    background: linear-gradient(135deg, rgba($primary, 0.1), rgba(#a855f7, 0.1));
+    position: relative;
+    
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.6s ease;
+    }
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 50%;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.3), transparent);
+    }
+  }
+  
+  .category-content {
+    padding: $spacing-lg;
+
+    h2,h3,h4 {
+      margin: 0;
+    }
+  }
+  
+  .category-name {
+    font-size: $font-xl;
+    font-weight: 700;
+    margin-bottom: $spacing-sm;
+    color: var(--text-primary);
+    transition: color 0.3s ease;
+  }
+  
+  .category-description {
+    color: var(--text-secondary);
+    font-size: $font-sm;
+    line-height: 1.6;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 5px 0;
+  }
+  
+  .category-count {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.35rem 0.85rem;
+    background: linear-gradient(135deg, $primary, #a855f7);
+    color: white;
+    border-radius: $radius-full;
+    font-size: $font-sm;
+    font-weight: 600;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: $spacing-2xl;
+    color: var(--text-secondary);
+    font-size: $font-lg;
+    
+    p {
+      margin: 0;
+    }
+  }
+</style>

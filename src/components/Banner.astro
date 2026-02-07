@@ -1,0 +1,427 @@
+---
+interface BannerItem {
+  image: string;
+  title: string;
+  description?: string;
+  link?: string;
+}
+
+interface Props {
+  items?: BannerItem[];
+  autoplay?: boolean;
+  interval?: number;
+}
+
+const {
+  items = [
+    {
+      image: 'https://picsum.photos/1200/400?random=1',
+      title: '欢迎来到 止于秋水 博客',
+      description: '分享技术、记录生活',
+      link: '/'
+    },
+    {
+      image: 'https://picsum.photos/1200/400?random=2',
+      title: '探索技术世界',
+      description: '持续学习，不断进步',
+      link: '/archive'
+    },
+    {
+      image: 'https://picsum.photos/1200/400?random=3',
+      title: '记录精彩瞬间',
+      description: '用文字记录生活点滴',
+      link: '/about'
+    }
+  ],
+  autoplay = true,
+  interval = 5000
+} = Astro.props;
+---
+
+<div class="banner-container hide" data-autoplay={autoplay} data-interval={interval}>
+  <div class="banner-wrapper">
+    <div class="banner-slides">
+      {items.map((item, index) => (
+        <div class={`banner-slide ${index === 0 ? 'active' : ''}`}>
+          {item.link ? (
+            <a href={item.link} class="banner-link">
+              <img src={item.image} alt={item.title} class="banner-image" />
+              <div class="banner-overlay">
+                <div class="banner-content">
+                  <h2 class="banner-title">{item.title}</h2>
+                  {item.description && (
+                    <p class="banner-description">{item.description}</p>
+                  )}
+                </div>
+              </div>
+            </a>
+          ) : (
+            <>
+              <img src={item.image} alt={item.title} class="banner-image" />
+              <div class="banner-overlay">
+                <div class="banner-content">
+                  <h2 class="banner-title">{item.title}</h2>
+                  {item.description && (
+                    <p class="banner-description">{item.description}</p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      ))}
+    </div>
+
+    <!-- 导航按钮 -->
+    {items.length > 1 && (
+      <>
+        <button class="banner-nav banner-prev" aria-label="上一张">
+          <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="banner-nav banner-next" aria-label="下一张">
+          <i class="fas fa-chevron-right"></i>
+        </button>
+
+        <!-- 指示器 -->
+        <div class="banner-indicators">
+          {items.map((_, index) => (
+            <button
+              class={`banner-indicator ${index === 0 ? 'active' : ''}`}
+              data-index={index}
+              aria-label={`跳转到第 ${index + 1} 张`}
+            />
+          ))}
+        </div>
+      </>
+    )}
+  </div>
+</div>
+
+<script>
+  class BannerCarousel {
+    private container: HTMLElement;
+    private slides: NodeListOf<HTMLElement>;
+    private indicators: NodeListOf<HTMLElement>;
+    private prevBtn: HTMLElement | null;
+    private nextBtn: HTMLElement | null;
+    private currentIndex: number = 0;
+    private autoplayTimer: number | null = null;
+    private autoplay: boolean;
+    private interval: number;
+
+    constructor(container: HTMLElement) {
+      this.container = container;
+      this.slides = container.querySelectorAll('.banner-slide');
+      this.indicators = container.querySelectorAll('.banner-indicator');
+      this.prevBtn = container.querySelector('.banner-prev');
+      this.nextBtn = container.querySelector('.banner-next');
+      this.autoplay = container.dataset.autoplay === 'true';
+      this.interval = parseInt(container.dataset.interval || '5000');
+
+      this.init();
+    }
+
+    init() {
+      // 绑定事件
+      this.prevBtn?.addEventListener('click', () => this.prev());
+      this.nextBtn?.addEventListener('click', () => this.next());
+
+      this.indicators.forEach((indicator, index) => {
+        indicator.addEventListener('click', () => this.goTo(index));
+      });
+
+      // 鼠标悬停暂停自动播放
+      this.container.addEventListener('mouseenter', () => this.stopAutoplay());
+      this.container.addEventListener('mouseleave', () => {
+        if (this.autoplay) this.startAutoplay();
+      });
+
+      // 触摸滑动支持
+      let touchStartX = 0;
+      let touchEndX = 0;
+
+      this.container.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+      });
+
+      this.container.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].clientX;
+        const diff = touchStartX - touchEndX;
+
+        if (Math.abs(diff) > 50) {
+          if (diff > 0) {
+            this.next();
+          } else {
+            this.prev();
+          }
+        }
+      });
+
+      // 启动自动播放
+      if (this.autoplay && this.slides.length > 1) {
+        this.startAutoplay();
+      }
+    }
+
+    goTo(index: number) {
+      // 移除当前激活状态
+      this.slides[this.currentIndex]?.classList.remove('active');
+      this.indicators[this.currentIndex]?.classList.remove('active');
+
+      // 设置新的索引
+      this.currentIndex = index;
+
+      // 添加激活状态
+      this.slides[this.currentIndex]?.classList.add('active');
+      this.indicators[this.currentIndex]?.classList.add('active');
+    }
+
+    next() {
+      const nextIndex = (this.currentIndex + 1) % this.slides.length;
+      this.goTo(nextIndex);
+    }
+
+    prev() {
+      const prevIndex = (this.currentIndex - 1 + this.slides.length) % this.slides.length;
+      this.goTo(prevIndex);
+    }
+
+    startAutoplay() {
+      this.stopAutoplay();
+      this.autoplayTimer = window.setInterval(() => {
+        this.next();
+      }, this.interval);
+    }
+
+    stopAutoplay() {
+      if (this.autoplayTimer) {
+        clearInterval(this.autoplayTimer);
+        this.autoplayTimer = null;
+      }
+    }
+  }
+
+  // 初始化所有轮播
+  document.addEventListener('DOMContentLoaded', () => {
+    const banners = document.querySelectorAll('.banner-container');
+    banners.forEach((banner) => {
+      new BannerCarousel(banner as HTMLElement);
+    });
+  });
+</script>
+
+<style lang="scss">
+  @use '../styles/variables.scss' as *;
+
+  .banner-container {
+    width: 100%;
+    margin-bottom: 20px;
+    // 默认显示，可以通过添加 .hide 类来隐藏
+    // display: block;
+
+    &.hide {
+      display: none;
+    }
+  }
+
+  .banner-wrapper {
+    position: relative;
+    width: 100%;
+    height: 260px;
+    border-radius: $radius-lg;
+    overflow: hidden;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+  }
+
+  .banner-slides {
+    position: relative;
+    width: 100%;
+    height: 100%;
+  }
+
+  .banner-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.6s ease, visibility 0.6s ease;
+
+    &.active {
+      opacity: 1;
+      visibility: visible;
+      z-index: 1;
+    }
+
+    .banner-link {
+      display: block;
+      width: 100%;
+      height: 100%;
+      text-decoration: none;
+      color: inherit;
+    }
+  }
+
+  .banner-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .banner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.3),
+      rgba(0, 0, 0, 0.6)
+    );
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .banner-content {
+    text-align: center;
+    color: white;
+    padding: 0 40px;
+    max-width: 800px;
+  }
+
+  .banner-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    animation: fadeInUp 0.8s ease;
+  }
+
+  .banner-description {
+    font-size: 1.2rem;
+    opacity: 0.95;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    animation: fadeInUp 0.8s ease 0.2s both;
+  }
+
+  .banner-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    color: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.3);
+      border-color: rgba(255, 255, 255, 0.5);
+      transform: translateY(-50%) scale(1.1);
+    }
+
+    &.banner-prev {
+      left: 24px;
+    }
+
+    &.banner-next {
+      right: 24px;
+    }
+  }
+
+  .banner-indicators {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 12px;
+    z-index: 10;
+  }
+
+  .banner-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.4);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.6);
+      transform: scale(1.2);
+    }
+
+    &.active {
+      background: white;
+      width: 32px;
+      border-radius: 6px;
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .banner-wrapper {
+      height: 300px;
+    }
+
+    .banner-title {
+      font-size: 1.75rem;
+    }
+
+    .banner-description {
+      font-size: $font-xs;
+    }
+
+    .banner-nav {
+      width: 40px;
+      height: 40px;
+      font-size: $font-xs;
+
+      &.banner-prev {
+        left: 12px;
+      }
+
+      &.banner-next {
+        right: 12px;
+      }
+    }
+
+    .banner-indicators {
+      bottom: 16px;
+    }
+
+    .banner-indicator {
+      width: 10px;
+      height: 10px;
+
+      &.active {
+        width: 24px;
+      }
+    }
+  }
+</style>

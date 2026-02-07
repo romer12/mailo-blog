@@ -1,0 +1,267 @@
+// 颜色变量 - Blog-Web 风格
+:root {
+  // 主色调
+  --primary-color: #409eff;
+  --secondary-color: #a855f7;
+  --primary-hover: #3a9de8;
+  --primary-light: rgba(64, 158, 255, 0.1);
+
+  // 浅色模式
+  --text-primary: #1f2937;
+  --text-secondary: #666;
+  --background: linear-gradient(125deg, #e0f2ff 0%, #f0f5ff 20%, #f5f0ff 40%, #fff0f7 60%, #fff5f5 80%, #fff8f0 100%);
+  --surface: #ffffff;
+  --loading-bg: rgba(255, 255, 255, 0.95);
+  --border-color: rgba(0, 0, 0, 0.1);
+  --card-bg: #ffffff;
+  --hover-bg: rgba(64, 158, 255, 0.1);
+  --input-bg: #ffffff;
+  --surface-rgb: 255, 255, 255;
+  --border-color-rgb: 0, 0, 0;
+
+  // 背景色
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7f9fe;
+  --bg-tertiary: #eef1f6;
+  --bg-card: #ffffff;
+
+  // 文字颜色
+  --text-tertiary: #a8a8a8;
+  --text-light: #ffffff;
+
+  // 阴影
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-hover: 0 4px 12px rgba(64, 158, 255, 0.15);
+
+  // 成功/警告/错误
+  --success-color: #52c41a;
+  --warning-color: #faad14;
+  --error-color: #f5222d;
+
+  // 链接颜色
+  --link-color: #409eff;
+  --link-hover: #3a9de8;
+
+  // 特殊背景
+  --about-me: linear-gradient(135deg, #409efff2, #a855f7f2);
+  --reply-message-bg: #f9f6f6;
+  --resources-bg: linear-gradient(135deg, #f8faff 0%, #f1f5ff 100%);
+}
+
+// 深色主题 - Blog-Web 深色风格
+[data-theme="dark"] {
+  --text-primary: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --background: linear-gradient(to bottom, #0f172a, #1e293b);
+  --surface: rgba(30, 41, 59, 0.8);
+  --loading-bg: rgba(15, 23, 42, 0.95);
+  --border-color: rgba(255, 255, 255, 0.1);
+  --card-bg: #1e293b;
+  --hover-bg: rgba(255, 255, 255, 0.05);
+  --input-bg: rgba(255, 255, 255, 0.05);
+  --surface-rgb: 30, 41, 59;
+  --border-color-rgb: 255, 255, 255;
+
+  // 背景色
+  --bg-primary: #1e293b;
+  --bg-secondary: #334155;
+  --bg-tertiary: #475569;
+  --bg-card: #1e293b;
+
+  // 文字颜色
+  --text-tertiary: #858585;
+
+  // 阴影
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 8px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.5);
+  --shadow-hover: 0 4px 12px rgba(64, 158, 255, 0.25);
+
+  // 特殊背景
+  --about-me: linear-gradient(135deg, #1e293b, #0f172a);
+  --reply-message-bg: #334155;
+  --resources-bg: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+}
+
+// 响应式断点
+$breakpoint-sm: 640px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 1024px;
+$breakpoint-xl: 1280px;
+
+// 容器宽度
+$container-mobile: 100%;
+$container-tablet: 720px;
+$container-desktop: 960px;
+$container-wide: 1400px;
+
+// 间距
+$spacing-base: 4px;
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-2xl: 48px;
+
+// 字体大小
+$font-xs: 0.75rem;
+$font-sm: 0.875rem;
+$font-base: 1rem;
+$font-lg: 1.125rem;
+$font-xl: 1.25rem;
+$font-2xl: 1.5rem;
+$font-3xl: 1.875rem;
+$font-4xl: 2.25rem;
+
+// 圆角
+$radius-sm: 4px;
+$radius-md: 8px;
+$radius-lg: 10px;
+$radius-xl: 12px;
+$radius-full: 9999px;
+
+// 阴影 (SCSS 变量)
+$shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+$shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+$shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+// 颜色 (SCSS 变量)
+$primary: #409eff;
+$secondary: #a855f7;
+$text-primary: #1f2937;
+$text-secondary: #666;
+
+// 过渡
+$transition-fast: 150ms;
+$transition-base: 200ms;
+$transition-slow: 300ms;
+
+
+// Mixins
+@mixin mobile {
+  @media (max-width: #{$breakpoint-sm}) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: #{$breakpoint-md}) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: #{$breakpoint-lg}) {
+    @content;
+  }
+}
+
+@mixin wide {
+  @media (min-width: #{$breakpoint-xl}) {
+    @content;
+  }
+}
+
+@mixin responsive($breakpoint) {
+  @if $breakpoint ==sm {
+    @media (max-width: #{$breakpoint-sm}) {
+      @content;
+    }
+  }
+
+  @else if $breakpoint ==md {
+    @media (max-width: #{$breakpoint-md}) {
+      @content;
+    }
+  }
+
+  @else if $breakpoint ==lg {
+    @media (max-width: #{$breakpoint-lg}) {
+      @content;
+    }
+  }
+
+  @else if $breakpoint ==xl {
+    @media (max-width: #{$breakpoint-xl}) {
+      @content;
+    }
+  }
+}
+
+@mixin container {
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 $spacing-md;
+
+  @include tablet {
+    max-width: $container-tablet;
+  }
+
+  @include desktop {
+    max-width: $container-desktop;
+  }
+
+  @include wide {
+    max-width: $container-wide;
+  }
+}
+
+// 图片回退样式 mixin
+@mixin image-fallback {
+  position: relative;
+  background: var(--hover-bg);
+
+  &::before {
+    content: '\f03e';
+    font-family: 'Font Awesome 5 Free';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--text-secondary);
+    font-size: 1.5em;
+    opacity: 0.5;
+  }
+
+  &[src] {
+    &::before {
+      display: none;
+    }
+  }
+
+  &:not([src]),
+  &[src=""],
+  &[src="null"],
+  &[src="undefined"] {
+    &::before {
+      display: block;
+    }
+  }
+}
+
+// 文字溢出省略 mixin
+// 使用方法：
+// @include text-ellipsis(1);  // 单行溢出
+// @include text-ellipsis(2);  // 2行溢出
+// @include text-ellipsis(3);  // 3行溢出
+@mixin text-ellipsis($lines: 1) {
+  @if $lines ==1 {
+    // 单行溢出
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @else {
+    // 多行溢出
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-word;
+  }
+}

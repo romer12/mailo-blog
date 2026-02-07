@@ -1,0 +1,195 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+// 获取所有博客文章
+const allPosts = await getCollection('blog', ({ data }) => {
+  return data.draft !== true;
+});
+
+// 统计每个标签的文章数量
+const tagCount = new Map<string, number>();
+allPosts.forEach(post => {
+  post.data.tags.forEach(tag => {
+    tagCount.set(tag, (tagCount.get(tag) || 0) + 1);
+  });
+});
+
+// 生成标签列表
+const tags = Array.from(tagCount.entries()).map(([name, count]) => ({
+  name,
+  slug: name.toLowerCase().replace(/\s+/g, '-'),
+  article_count: count,
+  color: null
+}));
+
+// 获取分类
+const categories = [...new Set(allPosts.map(post => post.data.category).filter(Boolean))];
+---
+
+<Layout 
+  title="标签 - 止于秋水 博客"
+  description="浏览所有文章标签"
+  showSidebar={true}
+  categories={categories}
+  tags={tags}
+>
+  <div class="tags-page">
+    <h1 class="page-title">文章标签</h1>
+    
+    {tags.length === 0 ? (
+      <div class="empty-state">
+        <p>暂无标签</p>
+      </div>
+    ) : (
+      <div class="tags-cloud">
+        {tags.map(tag => (
+          <a 
+            href={`/tags/${tag.slug}`} 
+            class="tag-item"
+            style={tag.color ? `--tag-color: ${tag.color}` : ''}
+          >
+            <span class="tag-icon">#</span>
+            <span class="tag-name">{tag.name}</span>
+            <span class="tag-count">{tag.article_count || 0}</span>
+          </a>
+        ))}
+      </div>
+    )}
+  </div>
+</Layout>
+
+<style lang="scss">
+  @use '../styles/variables.scss' as *;
+  
+  .tags-page {
+    min-height: 400px;
+    background: var(--bg-card);
+    border-radius: $radius-lg;
+    padding: $spacing-2xl;
+    box-shadow: var(--shadow-sm);
+    
+    @include mobile {
+      padding: $spacing-lg;
+      border-radius: 0;
+    }
+  }
+  
+  .page-title {
+    font-size: $font-3xl;
+    font-weight: 700;
+    margin-bottom: $spacing-2xl;
+    color: var(--text-primary);
+    text-align: center;
+    position: relative;
+    padding-bottom: $spacing-md;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, $primary, #a855f7);
+      border-radius: 2px;
+    }
+    
+    @include mobile {
+      font-size: $font-2xl;
+    }
+  }
+  
+  .tags-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-md;
+    justify-content: center;
+  }
+  
+  .tag-item {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-xs;
+    padding: $spacing-sm $spacing-lg;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: $radius-full;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--tag-color, linear-gradient(135deg, $primary, #a855f7));
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      z-index: 0;
+    }
+    
+    &:hover {
+      transform: translateY(-4px) scale(1.05);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+      
+      &::before {
+        opacity: 1;
+      }
+      
+      .tag-icon,
+      .tag-name,
+      .tag-count {
+        color: white;
+        position: relative;
+        z-index: 1;
+      }
+      
+      .tag-count {
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+    }
+  }
+  
+  .tag-icon {
+    font-size: $font-lg;
+    font-weight: 700;
+    color: var(--tag-color, $primary);
+    transition: color 0.3s ease;
+  }
+  
+  .tag-name {
+    font-size: $font-base;
+    font-weight: 600;
+    color: var(--text-primary);
+    transition: color 0.3s ease;
+  }
+  
+  .tag-count {
+    font-size: $font-sm;
+    color: var(--text-tertiary);
+    background-color: var(--bg-tertiary);
+    padding: 0.2rem 0.6rem;
+    border-radius: $radius-full;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    min-width: 24px;
+    text-align: center;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: $spacing-2xl;
+    color: var(--text-secondary);
+    font-size: $font-lg;
+    
+    p {
+      margin: 0;
+    }
+  }
+</style>

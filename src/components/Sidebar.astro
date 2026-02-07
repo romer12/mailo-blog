@@ -1,0 +1,711 @@
+---
+interface Props {
+  categories?: string[];
+  tags?: string[];
+}
+
+const { categories = [], tags = [] } = Astro.props;
+
+// 获取推荐文章（从 Content Collections 获取）
+import { getCollection } from 'astro:content';
+import type { CollectionEntry } from 'astro:content';
+
+let recentPosts: CollectionEntry<'blog'>[] = [];
+try {
+  const allPosts = await getCollection('blog', ({ data }) => {
+    return data.draft !== true;
+  });
+  
+  // 按发布日期排序，取最新的10篇
+  recentPosts = allPosts
+    .sort((a, b) => b.data.publishDate.valueOf() - a.data.publishDate.valueOf())
+    .slice(0, 10);
+} catch (error) {
+  console.error('Failed to fetch recent posts:', error);
+}
+---
+
+<!-- 移动端遮罩层 -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<aside class="sidebar" id="sidebar">
+  <!-- 移动端关闭按钮 -->
+  <button class="sidebar-close" id="sidebarClose" aria-label="关闭侧边栏">
+    <i class="fas fa-times"></i>
+  </button>
+  <!-- 作者卡片-->
+  <div class="author-card">
+    <div class="floating-cards">
+      {Array.from({ length: 12 }).map((_, i) => (
+        <span class="card-particle" style={`animation-delay: ${Math.random() * 3}s`}></span>
+      ))}
+    </div>
+    
+    <div class="card-header">
+      <div class="author-avatar">
+        <img 
+          src="https://ui-avatars.com/api/?name=止于秋水&background=6366f1&color=fff&size=88" 
+          alt="作者头像"
+          class="avatar" 
+          id="authorAvatar"
+          onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=User&background=6366f1&color=fff&size=88';"
+        />
+      </div>
+    </div>
+    
+    <div class="author-info">
+      <h3 id="authorName">止于秋水</h3>
+      <p class="bio" id="authorBio">热爱技术，热爱生活</p>
+    </div>
+    
+    <div class="social-links">
+      <a href="https://github.com/romer12" target="_blank" rel="noopener" class="social-btn github" title="GitHub" id="githubLink">
+        <i class="fab fa-github"></i>
+      </a>
+      <a href="https://gitee.com/geetlet" target="_blank" rel="noopener" class="social-btn gitee" title="Gitee" id="giteeLink">
+        <i class="fab fa-git-alt"></i>
+      </a>
+      <a href="2829393271@qq.com" class="social-btn email" title="邮箱" id="emailLink">
+        <i class="fa-regular fa-envelope"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- 公告栏-->
+  <div class="section announcement" style="display: none;">
+    <h3>
+      <i class="fas fa-bullhorn"></i>
+      公告
+    </h3>
+    <div class="announcement-content">
+      <div class="announcement-item">
+        <span>欢迎来到 止于秋水 博客！这里分享技术与生活。</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 推荐文章 -->
+  {recentPosts.length > 0 && (
+    <div class="section">
+      <h3>
+        <i class="fas fa-star"></i>
+        最新文章
+      </h3>
+      <div class="post-list">
+        {recentPosts.map((post, index) => (
+          <a href={`/blog/${post.slug}`} class="post-item" title={post.data.title}>
+            <div class="post-meta">
+              <h4>{post.data.title}</h4>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  )}
+
+  <!-- 标签栏-->
+  {tags.length > 0 && (
+    <div class="section">
+      <h3>
+        <i class="fas fa-tags"></i>
+        标签云
+      </h3>
+      <div class="tags-cloud">
+        {tags.slice(0, 20).map(tag => (
+          <a
+            href={`/tags/${tag.slug}`} 
+            class="tag-item"
+            style={tag.color ? `--tag-color: ${tag.color}` : ''}
+          >
+            {tag.name}
+          </a>
+        ))}
+      </div>
+    </div>
+  )}
+</aside>
+
+<script>
+  // 从localStorage加载站点设置
+  const settings = JSON.parse(localStorage.getItem('siteSettings') || '{}');
+  
+  if (settings.authorName) {
+    const authorNameEl = document.getElementById('authorName');
+    if (authorNameEl) authorNameEl.textContent = settings.authorName;
+  }
+  
+  if (settings.authorBio) {
+    const authorBioEl = document.getElementById('authorBio');
+    if (authorBioEl) authorBioEl.textContent = settings.authorBio;
+  }
+  
+  if (settings.avatarUrl) {
+    const authorAvatarEl = document.getElementById('authorAvatar');
+    if (authorAvatarEl) authorAvatarEl.src = settings.avatarUrl;
+  }
+  
+  // 社交链接
+  const githubLink = document.getElementById('githubLink');
+  const giteeLink = document.getElementById('giteeLink');
+  const emailLink = document.getElementById('emailLink');
+  
+  if (settings.githubUrl && githubLink) {
+    githubLink.href = settings.githubUrl;
+  }
+  
+  if (settings.giteeUrl && giteeLink) {
+    giteeLink.href = settings.giteeUrl;
+  }
+  
+  if (settings.email && emailLink) {
+    emailLink.href = `mailto:${settings.email}`;
+  }
+
+  // 移动端侧边栏控制
+  const sidebar = document.getElementById('sidebar');
+  const sidebarOverlay = document.getElementById('sidebarOverlay');
+  const sidebarClose = document.getElementById('sidebarClose');
+
+  // 打开侧边栏的全局函数（供 Header 调用）
+  (window as any).toggleSidebar = () => {
+    sidebar?.classList.toggle('mobile-active');
+    sidebarOverlay?.classList.toggle('active');
+    document.body.classList.toggle('sidebar-open');
+  };
+
+  // 关闭侧边栏
+  const closeSidebar = () => {
+    sidebar?.classList.remove('mobile-active');
+    sidebarOverlay?.classList.remove('active');
+    document.body.classList.remove('sidebar-open');
+  };
+
+  // 点击关闭按钮
+  sidebarClose?.addEventListener('click', closeSidebar);
+
+  // 点击遮罩层关闭
+  sidebarOverlay?.addEventListener('click', closeSidebar);
+</script>
+
+<style lang="scss">
+  @use '../styles/variables.scss' as *;
+  
+  // 移动端遮罩层
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1998;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+
+    &.active {
+      display: block;
+      opacity: 1;
+    }
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    max-width: 320px;
+
+    // 移动端关闭按钮（默认隐藏）
+    .sidebar-close {
+      display: none;
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--hover-bg);
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      z-index: 10;
+      transition: all 0.3s ease;
+
+      i {
+        font-size: 1.2em;
+      }
+
+      &:hover {
+        background: $primary;
+        color: white;
+        transform: rotate(90deg);
+      }
+    }
+
+    // 移动端样式
+    @media (max-width: 1024px) {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      max-width: 320px;
+      width: 85%;
+      background: var(--surface);
+      z-index: 1999;
+      overflow-y: auto;
+      padding: 20px;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      box-shadow: 2px 0 12px rgba(0, 0, 0, 0.1);
+
+      &.mobile-active {
+        transform: translateX(0);
+      }
+
+      .sidebar-close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+  }
+
+  .author-card {
+    margin-bottom: $spacing-lg;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    position: relative;
+    background: var(--card-bg);
+    border-radius: $radius-lg;
+    overflow: hidden;
+    padding: 0;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 120px;
+      background-image: url('https://img.shiyit.com/beijing.jpg');
+      background-size: cover;
+      background-position: center;
+      transition: opacity 0.3s ease;
+      border-top-left-radius: $radius-lg;
+      border-top-right-radius: $radius-lg;
+    }
+
+    &:hover::before {
+      opacity: 0.2;
+    }
+
+    .card-header {
+      position: relative;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: center;
+      padding-top: $spacing-md;
+
+      .author-avatar {
+        width: 88px;
+        height: 88px;
+        position: relative;
+
+        .avatar {
+          width: 100%;
+          height: 100%;
+          border-radius: 50%;
+          object-fit: cover;
+          border: 3px solid #fff;
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+          transition: transform 0.3s ease;
+          animation: float 3s ease-in-out infinite;
+
+          &:hover {
+            transform: scale(1.05);
+          }
+        }
+      }
+    }
+
+    .author-info {
+      text-align: center;
+      padding: 0 $spacing-md;
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: $primary;
+        margin-bottom: 8px;
+      }
+
+      .bio {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: 16px;
+      }
+    }
+
+    .social-links {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 0 $spacing-md $spacing-md;
+
+      .social-btn {
+        width: 36px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: rgba(99, 102, 241, 0.05);
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+        position: relative;
+        text-decoration: none;
+        cursor: pointer;
+
+        &.qq {
+          color: #60a5fa;
+
+          &:hover {
+            background: #60a5fa;
+            color: white;
+          }
+        }
+
+        &.github {
+          color: #000;
+
+          &:hover {
+            background: #000;
+            color: white;
+          }
+        }
+
+        &.gitee {
+          color: #ee3434;
+
+          &:hover {
+            background: #da3535;
+            color: white;
+          }
+        }
+
+        &.email {
+          color: #d872a7;
+
+          &:hover {
+            background: #d872a7;
+            color: white;
+          }
+        }
+
+        &.wechat {
+          color: #10b981;
+
+          &:hover {
+            background: #10b981;
+            color: white;
+          }
+        }
+      }
+    }
+
+    .floating-cards {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      pointer-events: none;
+      overflow: hidden;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    &:hover .floating-cards {
+      opacity: 1;
+    }
+
+    .card-particle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: white;
+      border-radius: 2px;
+      opacity: 0;
+      animation: fall 3s ease-in-out infinite;
+      left: calc(var(--random-x, 50) * 1%);
+
+      &:nth-child(1) { left: 10%; background: #6366f1; }
+      &:nth-child(2) { left: 20%; background: #8b5cf6; animation-delay: 0.5s; }
+      &:nth-child(3) { left: 30%; background: #ec4899; animation-delay: 1s; }
+      &:nth-child(4) { left: 40%; background: #10b981; animation-delay: 1.5s; }
+      &:nth-child(5) { left: 50%; background: #f59e0b; animation-delay: 2s; }
+      &:nth-child(6) { left: 60%; background: #ef4444; animation-delay: 2.5s; }
+      &:nth-child(7) { left: 70%; background: #6366f1; animation-delay: 0.3s; }
+      &:nth-child(8) { left: 80%; background: #8b5cf6; animation-delay: 0.8s; }
+      &:nth-child(9) { left: 90%; background: #ec4899; animation-delay: 1.3s; }
+      &:nth-child(10) { left: 15%; background: #10b981; animation-delay: 1.8s; }
+      &:nth-child(11) { left: 35%; background: #f59e0b; animation-delay: 2.3s; }
+      &:nth-child(12) { left: 55%; background: #ef4444; animation-delay: 2.8s; }
+    }
+  }
+
+  .section {
+    margin-bottom: $spacing-lg;
+    background: var(--card-bg);
+    border-radius: $radius-lg;
+    padding: $spacing-md;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #6366f1;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid rgba(99, 102, 241, 0.1);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      &::before {
+        content: '';
+        display: inline-block;
+        width: 4px;
+        height: 16px;
+        background: linear-gradient(to bottom, #6366f1, #8b5cf6);
+        border-radius: 2px;
+      }
+
+      i {
+        font-size: 1rem;
+      }
+    }
+
+    .post-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      counter-reset: post-counter;
+
+      .post-item {
+        display: flex;
+        gap: 16px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        position: relative;
+
+        &:hover {
+          transform: translateX(4px);
+
+          h4 {
+            color: var(--primary-color) !important;
+          }
+        }
+
+        .post-meta {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+
+          h4 {
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            margin: 0;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-height: 1.4;
+            transition: color 0.3s ease;
+            @include text-ellipsis(1);
+          }
+
+          time {
+            font-size: 0.8rem;
+            color: #8b8b8b;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+
+            &::before {
+              content: '\f017';
+              font-family: 'Font Awesome 5 Free';
+              font-size: $font-xs;
+              opacity: 0.8;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .announcement {
+    h3 {
+      i {
+        color: #f59e0b;
+        animation: shake 1.5s ease-in-out infinite;
+      }
+    }
+
+    .announcement-content {
+      .announcement-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px dashed rgba(99, 102, 241, 0.1);
+
+        &:last-child {
+          border-bottom: none;
+          padding-bottom: 0;
+        }
+
+        &:first-child {
+          padding-top: 0;
+        }
+
+        span {
+          font-size: 0.9rem;
+          color: var(--text-secondary);
+          line-height: 1.6;
+          transition: color 0.3s ease;
+        }
+
+        &:hover span {
+          color: var(--text-primary);
+        }
+      }
+    }
+  }
+
+  .tags-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 0;
+
+    .tag-item {
+      display: inline-block;
+      padding: 6px 12px;
+      background: var(--hover-bg);
+      color: var(--text-primary);
+      border-radius: 16px;
+      font-size: 0.875rem;
+      text-decoration: none;
+      white-space: nowrap;
+      border: 1px solid var(--border-color);
+      transition: all 0.3s ease;
+
+      &:hover {
+        background: $primary;
+        color: white;
+        border-color: $primary;
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba($primary, 0.3);
+      }
+    }
+  }
+
+  // 响应式
+  @include responsive(lg) {
+    .sidebar {
+      display: none;
+    }
+  }
+
+  // 防止页面滚动（当侧边栏打开时）
+  :global(body.sidebar-open) {
+    overflow: hidden;
+
+    @media (min-width: 1025px) {
+      overflow: auto;
+    }
+  }
+
+  // 动画
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
+  }
+
+  @keyframes fall {
+    0% {
+      transform: translateY(-20px) rotate(0deg);
+      opacity: 0;
+    }
+    20% {
+      opacity: 0.8;
+    }
+    80% {
+      opacity: 0.8;
+    }
+    100% {
+      transform: translateY(300px) rotate(360deg);
+      opacity: 0;
+    }
+  }
+
+  @keyframes shake {
+    0%, 100% {
+      transform: rotate(0deg);
+    }
+    25% {
+      transform: rotate(-10deg);
+    }
+    75% {
+      transform: rotate(10deg);
+    }
+  }
+
+  // 图标颜色
+  .fa-star {
+    color: #ef5151;
+  }
+
+  .fa-tags {
+    color: #e329d3;
+  }
+
+  // 深色模式
+  :root[data-theme='dark'] {
+    .author-card {
+      &::before {
+        opacity: 0.3;
+      }
+
+      &:hover::before {
+        opacity: 0.1;
+      }
+    }
+
+    .section .post-item {
+      &::before {
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      img {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .post-meta time {
+        color: #777;
+      }
+
+      &:hover h4 {
+        color: #818cf8;
+      }
+    }
+  }
+</style>

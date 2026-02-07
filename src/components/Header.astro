@@ -1,0 +1,819 @@
+---
+// Blog-Web 风格的导航栏
+const currentPath = Astro.url.pathname;
+
+const navLinks = [
+  { 
+    name: '首页', 
+    href: '/', 
+    icon: 'fas fa-home',
+    colorClass: 'home-link'
+  },
+  { 
+    name: '文章', 
+    href: '/blog', 
+    icon: 'fas fa-book',
+    colorClass: 'blog-link'
+  },
+  { 
+    name: '分类', 
+    href: '/categories', 
+    icon: 'fas fa-folder',
+    colorClass: 'category-link'
+  },
+  { 
+    name: '标签', 
+    href: '/tags', 
+    icon: 'fas fa-tags',
+    colorClass: 'tag-link'
+  },
+  { 
+    name: '归档', 
+    href: '/archive', 
+    icon: 'fas fa-archive',
+    colorClass: 'archive-link'
+  },
+  // { 
+  //   name: '留言板', 
+  //   href: '/messages', 
+  //   icon: 'fas fa-comment-dots',
+  //   colorClass: 'messages-link'
+  // },
+  { 
+    name: '友链', 
+    href: '/friends', 
+    icon: 'fas fa-link',
+    colorClass: 'friends-link'
+  },
+  // { 
+  //   name: '关于', 
+  //   href: '/about', 
+  //   icon: 'fas fa-info-circle',
+  //   colorClass: 'about-link'
+  // },
+];
+
+// 判断是否为当前页面
+const isActive = (href: string) => {
+  if (href === '/') {
+    return currentPath === '/';
+  }
+  return currentPath.startsWith(href);
+};
+
+---
+
+<header class="site-header" id="page-header">
+  <nav class="navbar">
+    <!-- 移动端菜单按钮-->
+    <button class="menu-btn" id="menuToggle" aria-label="菜单">
+      <i class="fas fa-bars"></i>
+    </button>
+
+    <div class="nav-left">
+      <a href="/" class="logo">
+        <span class="logo-text" id="siteTitle">止于秋水</span>
+      </a>
+    </div>
+
+    <div class="nav-center">
+      {navLinks.map(item => (
+        <a 
+          href={item.href}
+          class={`nav-link ${item.colorClass} ${isActive(item.href) ? 'active' : ''}`}
+        >
+          <i class={item.icon}></i>
+          <span class="nav-text">{item.name}</span>
+        </a>
+      ))}
+    </div>
+
+    <div class="nav-right">
+      <button class="search-btn" id="searchBtn" aria-label="搜索">
+        <i class="fas fa-search"></i>
+        <span class="search-text">搜索</span>
+      </button>
+
+      <!-- 移动端搜索按钮-->
+      <button class="mobile-search-btn" id="mobileSearchBtn" aria-label="搜索">
+        <i class="fas fa-search"></i>
+      </button>
+
+      <button class="theme-btn" id="themeToggle" aria-label="切换主题">
+        <i class="fas fa-sun sun-icon"></i>
+        <i class="fas fa-moon moon-icon"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+
+<script>  
+  // 主题切换功能
+  const themeToggle = document.getElementById('themeToggle');
+  const root = document.documentElement;
+  
+  // 从 localStorage 加载主题
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  root.setAttribute('data-theme', savedTheme);
+  
+  // 主题切换
+  themeToggle?.addEventListener('click', () => {
+    const currentTheme = root.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    root.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+  });
+
+  // 搜索按钮点击事件
+  document.addEventListener('DOMContentLoaded', () => {
+    const searchBtn = document.getElementById('searchBtn');
+    const mobileSearchBtn = document.getElementById('mobileSearchBtn');
+    
+    searchBtn?.addEventListener('click', () => {
+      if (typeof (window as any).openSearch === 'function') {
+        (window as any).openSearch();
+      }
+    });
+    
+    mobileSearchBtn?.addEventListener('click', () => {
+      if (typeof (window as any).openSearch === 'function') {
+        (window as any).openSearch();
+      }
+    });
+  });
+
+  // 点击其他地方关闭下拉菜单
+  document.addEventListener('click', () => {
+    const dropdownMenu = document.getElementById('dropdownMenu');
+    dropdownMenu?.classList.remove('show');
+  });
+  
+  // 用localStorage 加载站点设置
+  const settings = JSON.parse(localStorage.getItem('siteSettings') || '{}');
+  
+  if (settings.siteName) {
+    const siteTitleEl = document.getElementById('siteTitle');
+    if (siteTitleEl) siteTitleEl.textContent = settings.siteName;
+  }
+
+  // 滚动隐藏导航栏
+  let lastScrollTop = 0;
+  const header = document.getElementById('page-header');
+  
+  const handleScroll = () => {
+    const currentScrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+    // 如果滚动位置小于 100px，始终显示header
+    if (currentScrollTop < 100) {
+      header?.classList.remove('header-hidden');
+      lastScrollTop = currentScrollTop;
+      return;
+    }
+
+    // 判断滚动方向
+    if (currentScrollTop > lastScrollTop) {
+      // 向下滚动 - 隐藏
+      header?.classList.add('header-hidden');
+    } else {
+      // 向上滚动 - 显示
+      header?.classList.remove('header-hidden');
+    }
+    
+    lastScrollTop = currentScrollTop;
+  };
+  
+  window.addEventListener('scroll', handleScroll);
+  
+  // 移动端菜单切换
+  const menuToggle = document.getElementById('menuToggle');
+  const navCenter = document.querySelector('.nav-center');
+  
+  menuToggle?.addEventListener('click', () => {
+    // 在小屏幕下，切换导航菜单
+    if (window.innerWidth <= 768) {
+      navCenter?.classList.toggle('mobile-active');
+      document.body.classList.toggle('scroll-disabled');
+    } else {
+      // 在中等屏幕下（768-1024px），切换侧边栏
+      if (typeof (window as any).toggleSidebar === 'function') {
+        (window as any).toggleSidebar();
+      }
+    }
+  });
+  
+  // 搜索按钮 - 打开搜索弹层
+  const searchBtn = document.getElementById('searchBtn');
+  const mobileSearchBtn = document.getElementById('mobileSearchBtn');
+  
+  searchBtn?.addEventListener('click', () => {
+    if (typeof (window as any).openSearchModal === 'function') {
+      (window as any).openSearchModal();
+    }
+  });
+  
+  mobileSearchBtn?.addEventListener('click', () => {
+    if (typeof (window as any).openSearchModal === 'function') {
+      (window as any).openSearchModal();
+    }
+  });
+</script>
+
+<style lang="scss">
+  @use '../styles/variables.scss' as *;
+  
+  .site-header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    background: rgba(var(--surface-rgb), 0.65);
+    backdrop-filter: blur(10px) saturate(180%);
+    -webkit-backdrop-filter: blur(10px) saturate(180%);
+    border-bottom: 1px solid rgba(var(--border-color-rgb), 0.08);
+
+    &.header-hidden {
+      transform: translateY(-100%);
+      box-shadow: none;
+    }
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(var(--surface-rgb), 0.05),
+        rgba(var(--surface-rgb), 0)
+      );
+      pointer-events: none;
+    }
+  }
+
+  .navbar {
+    padding: $spacing-sm $spacing-xl;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    height: 50px;
+    position: relative;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .nav-left {
+    margin-right: 50px;
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      text-decoration: none;
+      gap: $spacing-sm;
+
+      .logo-icon {
+        font-size: 1.8em;
+        line-height: 1;
+      }
+
+      .logo-text {
+        font-size: 1.2em;
+        font-weight: 700;
+        background: linear-gradient(135deg, $primary, $secondary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        max-width: 200px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      @media screen and (max-width: 1400px) {
+        .logo-text {
+          max-width: 160px;
+          font-size: 1.1em;
+        }
+      }
+
+      @media screen and (max-width: 1200px) {
+        .logo-text {
+          max-width: 140px;
+          font-size: 1em;
+        }
+      }
+
+      @media screen and (max-width: 1000px) {
+        .logo-text {
+          max-width: 120px;
+          font-size: 0.9em;
+        }
+      }
+    }
+  }
+
+  .nav-center {
+    display: flex;
+    gap: $spacing-lg;
+    flex: 1;
+    font-size: 1em;
+    align-items: center;
+
+    .nav-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: $spacing-sm;
+      padding: $spacing-sm $spacing-md;
+      border-radius: $radius-md;
+      font-size: 0.85em;
+      position: relative;
+      white-space: nowrap;
+
+      // 动态下划线效果
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 0;
+        height: 3px;
+        background: $primary;
+        transition: width 0.3s ease;
+      }
+
+      i {
+        font-size: 1.1em;
+        transition: transform 0.3s ease;
+      }
+
+      &:hover {
+        color: $primary;
+        
+        &::after {
+          width: 80%;
+        }
+        
+        i {
+          transform: translateY(-2px);
+          animation: iconFloat 1s ease-in-out infinite;
+        }
+      }
+
+      &.active {
+        color: $primary;
+        font-weight: 600;
+        
+        &::after {
+          width: 80%;
+        }
+      }
+
+      // 图标颜色
+      &.home-link i { color: #4CAF50; }
+      &.archive-link i { color: #9C27B0; }
+      &.category-link i { color: #FF9800; }
+      &.tag-link i { color: #E91E63; }
+      &.messages-link i { color: #2196F3; }
+      &.friends-link i { color: #00BCD4; }
+      &.about-link i { color: #795548; }
+
+      &:hover i {
+        animation: iconFloat 1s ease-in-out infinite;
+      }
+    }
+
+    @media screen and (max-width: 1400px) {
+      .nav-link {
+        font-size: 0.85em;
+        padding: $spacing-sm $spacing-sm;
+        gap: $spacing-xs;
+      }
+    }
+
+    @media screen and (max-width: 1200px) {
+      gap: $spacing-sm;
+      
+      .nav-link {
+        font-size: 0.85em;
+        padding: $spacing-xs $spacing-sm;
+
+        i {
+          font-size: 1em;
+        }
+      }
+    }
+  }
+
+  .nav-right {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    margin-left: auto;
+    
+    .search-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--hover-bg);
+      border-radius: 20px;
+      color: var(--text-secondary);
+      transition: all 0.3s ease;
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      
+      i {
+        font-size: 0.9em;
+        transition: transform 0.3s ease;
+      }
+      
+      .search-text {
+        font-size: 0.9em;
+        font-weight: 500;
+      }
+      
+      &:hover {
+        background: var(--surface);
+        color: $primary;
+        border-color: $primary;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba($primary, 0.1);
+        
+        i {
+          transform: scale(1.1);
+        }
+      }
+    }
+
+    .theme-btn {
+      position: relative;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      background: var(--hover-bg);
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      
+      i {
+        position: absolute;
+        font-size: 1.1em;
+        transition: all 0.3s ease;
+      }
+      
+      .sun-icon {
+        opacity: 1;
+        transform: rotate(0deg);
+      }
+      
+      .moon-icon {
+        opacity: 0;
+        transform: rotate(90deg);
+      }
+      
+      &:hover {
+        background: $primary;
+        color: white;
+        transform: translateY(-2px);
+      }
+    }
+
+    .login-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: var(--hover-bg);
+      border-radius: 20px;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.3s ease;
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      
+      i {
+        font-size: 0.9em;
+        transition: transform 0.3s ease;
+      }
+      
+      .login-text {
+        font-size: 0.9em;
+        font-weight: 500;
+      }
+      
+      &:hover {
+        background: $primary;
+        color: white;
+        border-color: $primary;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba($primary, 0.2);
+        
+        i {
+          transform: scale(1.1);
+        }
+      }
+    }
+
+    .user-info {
+      position: relative;
+      
+      .user-dropdown {
+        position: relative;
+      }
+      
+      .user-avatar-btn {
+        width: 40px;
+        height: 40px;
+        cursor: pointer;
+        border-radius: 50%;
+        overflow: hidden;
+        transition: transform 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid $primary;
+        background: none;
+        padding: 0;
+
+        &:hover {
+          transform: scale(1.05);
+        }
+
+        .avatar-icon {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+      }
+      
+      .dropdown-menu {
+        position: absolute;
+        top: calc(100% + 12px);
+        right: 0;
+        min-width: 200px;
+        background: var(--bg-card);
+        border-radius: $radius-lg;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        border: 1px solid var(--border-color);
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1000;
+        overflow: hidden;
+        
+        &.show {
+          opacity: 1;
+          visibility: visible;
+          transform: translateY(0);
+        }
+        
+        &::before {
+          content: '';
+          position: absolute;
+          top: -6px;
+          right: 16px;
+          width: 12px;
+          height: 12px;
+          background: var(--bg-card);
+          border-left: 1px solid var(--border-color);
+          border-top: 1px solid var(--border-color);
+          transform: rotate(45deg);
+        }
+      }
+      
+      .dropdown-header {
+        padding: $spacing-md $spacing-lg;
+        border-bottom: 1px solid var(--border-color);
+        
+        .user-name {
+          font-weight: 600;
+          color: var(--text-primary);
+          margin-bottom: $spacing-xs;
+        }
+        
+        .user-email {
+          font-size: $font-sm;
+          color: var(--text-secondary);
+        }
+      }
+      
+      .dropdown-divider {
+        height: 1px;
+        background: var(--border-color);
+        margin: $spacing-xs 0;
+      }
+      
+      .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: $spacing-sm;
+        padding: $spacing-sm $spacing-lg;
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        background: none;
+        border: none;
+        width: 100%;
+        text-align: left;
+        font-size: $font-base;
+        
+        i {
+          width: 16px;
+          font-size: 0.9em;
+        }
+        
+        &:hover {
+          background: var(--hover-bg);
+          color: $primary;
+        }
+        
+        &.logout-btn {
+          color: #ef4444;
+          
+          &:hover {
+            background: rgba(239, 68, 68, 0.1);
+            color: #dc2626;
+          }
+        }
+      }
+    }
+  }
+
+  .menu-btn,
+  .mobile-search-btn {
+    display: none;
+    background: none;
+    border: none;
+    padding: $spacing-sm;
+    font-size: 1.2em;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.3s ease;
+
+    &:hover {
+      color: $primary;
+    }
+  }
+
+  // 中等屏幕显示菜单按钮（用于切换侧边栏）
+  @media (max-width: 1024px) {
+    .menu-btn {
+      display: block;
+    }
+  }
+
+  // 响应式-只在手机宽度时隐藏导航菜单
+  @media (max-width: 768px) {
+    .nav-center {
+      display: none;
+      position: fixed;
+      top: 64px;
+      left: 0;
+      right: 0;
+      background: var(--surface);
+      flex-direction: column;
+      padding: $spacing-md;
+      box-shadow: $shadow-lg;
+      max-height: calc(100vh - 64px);
+      overflow-y: auto;
+
+      &.mobile-active {
+        display: flex;
+      }
+
+      .nav-link {
+        width: 100%;
+        justify-content: flex-start;
+        font-size: 1em;
+        padding: $spacing-md;
+
+        i {
+          display: inline-block !important;
+          font-size: 1.2em;
+        }
+        
+        // 移动端折叠菜单中去掉下划线效果
+        &::after {
+          display: none;
+        }
+        
+        &:hover {
+          background: var(--hover-bg);
+          border-radius: $radius-md;
+          
+          &::after {
+            display: none;
+          }
+        }
+      }
+    }
+
+    .nav-right {
+      .search-btn {
+        display: none;
+      }
+      
+      .login-btn {
+        padding: 8px 12px;
+        
+        .login-text {
+          display: none;
+        }
+      }
+    }
+
+    .menu-btn,
+    .mobile-search-btn {
+      display: block;
+    }
+
+    .nav-left {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      margin-right: 0;
+      
+      .logo {
+        .logo-icon {
+          font-size: 1.6em;
+        }
+        
+        .logo-text {
+          max-width: 160px;
+          font-size: 1em;
+          display: block;
+        }
+      }
+    }
+
+    // 移动端显示用户信息
+    .nav-right .user-info {
+      display: flex;
+    }
+  }
+
+  @media screen and (max-width: 480px) {
+    .nav-left .logo .logo-text {
+      max-width: 120px;
+      font-size: 1.3em;
+    }
+  }
+
+  // 深色模式
+  :root[data-theme='dark'] {
+    .site-header {
+      background: rgba(var(--surface-rgb), 0.75);
+      backdrop-filter: blur(10px) saturate(160%);
+      -webkit-backdrop-filter: blur(10px) saturate(160%);
+      border-bottom-color: rgba(var(--border-color-rgb), 0.15);
+    }
+
+    .theme-btn {
+      .sun-icon {
+        opacity: 0;
+        transform: rotate(90deg);
+      }
+      
+      .moon-icon {
+        opacity: 1;
+        transform: rotate(0deg);
+      }
+    }
+
+    // 深色模式下的图标颜色
+    .nav-link {
+      &.home-link i { color: #81C784; }
+      &.archive-link i { color: #CE93D8; }
+      &.clock-link i { color: #4DD0E1; }
+      &.category-link i { color: #FFB74D; }
+      &.tag-link i { color: #F06292; }
+      &.messages-link i { color: #64B5F6; }
+      &.friends-link i { color: #4DD0E1; }
+      &.about-link i { color: #A1887F; }
+    }
+  }
+
+  // 动画
+  @keyframes iconFloat {
+    0% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-3px);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+</style>

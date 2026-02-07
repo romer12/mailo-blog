@@ -1,0 +1,308 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+// 获取所有博客文章
+const allPosts = await getCollection('blog', ({ data }) => {
+  return data.draft !== true;
+});
+
+// 按发布日期排序
+const sortedPosts = allPosts.sort((a, b) => 
+  b.data.publishDate.valueOf() - a.data.publishDate.valueOf()
+);
+
+// 按年月分组
+interface ArchiveGroup {
+  year: string;
+  month: string;
+  count: number;
+  articles: Array<{
+    slug: string;
+    title: string;
+    published_at: string;
+  }>;
+}
+
+const archiveMap = new Map<string, ArchiveGroup>();
+
+sortedPosts.forEach(post => {
+  const date = post.data.publishDate;
+  const year = date.getFullYear().toString();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const key = `${year}-${month}`;
+  
+  if (!archiveMap.has(key)) {
+    archiveMap.set(key, {
+      year,
+      month,
+      count: 0,
+      articles: []
+    });
+  }
+  
+  const group = archiveMap.get(key)!;
+  group.count++;
+  group.articles.push({
+    slug: post.slug,
+    title: post.data.title,
+    published_at: date.toLocaleDateString('zh-CN', {
+      month: 'long',
+      day: 'numeric'
+    })
+  });
+});
+
+const archive = Array.from(archiveMap.values());
+
+// 获取所有分类和标签
+const categories = [...new Set(allPosts.map(post => post.data.category).filter(Boolean))];
+const allTags = allPosts.flatMap(post => post.data.tags);
+const tags = [...new Set(allTags)];
+
+// 月份名称映射
+const monthNames = ['一月', '二月', '三月', '四月', '五月', '六月', '七月', '八月', '九月', '十月', '十一月', '十二月'];
+---
+
+<Layout 
+  title="归档 - 止于秋水"
+  description="按时间浏览所有文章"
+  showSidebar={true}
+  categories={categories}
+  tags={tags}
+>
+  <div class="archive-page">
+    <h1 class="page-title">文章归档</h1>
+    
+    {archive.length === 0 ? (
+      <div class="empty-state">
+        <p>暂无归档</p>
+      </div>
+    ) : (
+      <div class="archive-timeline">
+        {archive.map(group => (
+          <div class="archive-group">
+            <div class="archive-header">
+              <h2 class="archive-date">
+                {group.year} 年 {monthNames[parseInt(group.month) - 1]}
+              </h2>
+              <span class="archive-count">{group.count} 篇</span>
+            </div>
+            
+            <div class="archive-articles">
+              {group.articles.map(article => (
+                <a href={`/blog/${article.slug}`} class="archive-item">
+                  <span class="article-date">{article.published_at}</span>
+                  <span class="article-title">{article.title}</span>
+                </a>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+</Layout>
+
+<style lang="scss">
+  @use '../styles/variables.scss' as *;
+  
+  .archive-page {
+    min-height: 400px;
+    background: var(--bg-card);
+    border-radius: $radius-lg;
+    padding: $spacing-2xl;
+    box-shadow: var(--shadow-sm);
+    
+    @include mobile {
+      padding: $spacing-lg;
+      border-radius: 0;
+    }
+  }
+  
+  .page-title {
+    font-size: $font-3xl;
+    font-weight: 700;
+    margin-bottom: $spacing-xl;
+    color: var(--text-primary);
+    text-align: center;
+    position: relative;
+    padding-bottom: $spacing-md;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 3px;
+      background: linear-gradient(90deg, $primary, #a855f7);
+      border-radius: 2px;
+    }
+    
+    @include mobile {
+      font-size: $font-2xl;
+    }
+  }
+  
+  .archive-timeline {
+    position: relative;
+    padding-left: $spacing-2xl;
+    margin-top: $spacing-2xl;
+    
+    @include mobile {
+      padding-left: $spacing-lg;
+    }
+    
+    &::before {
+      content: '';
+      position: absolute;
+      left: 6px;
+      top: 0;
+      bottom: 0;
+      width: 3px;
+      background: linear-gradient(180deg, $primary, #a855f7);
+      border-radius: 2px;
+      
+      @include mobile {
+        left: 4px;
+        width: 2px;
+      }
+    }
+  }
+  
+  .archive-group {
+    margin-bottom: $spacing-2xl;
+    position: relative;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      left: calc(-#{$spacing-2xl} - 2px);
+      top: 6px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, $primary, #a855f7);
+      border: 3px solid var(--bg-card);
+      box-shadow: 0 0 0 3px rgba($primary, 0.2);
+      z-index: 1;
+      
+      @include mobile {
+        left: calc(-#{$spacing-lg} - 3px);
+        width: 12px;
+        height: 12px;
+        border-width: 2px;
+      }
+    }
+    
+    &:hover::before {
+      transform: scale(1.2);
+      transition: transform 0.3s ease;
+    }
+  }
+  
+  .archive-header {
+    display: flex;
+    align-items: center;
+    gap: $spacing-md;
+    margin-bottom: $spacing-md;
+    flex-wrap: wrap;
+  }
+  
+  .archive-date {
+    font-size: $font-2xl;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    background: linear-gradient(135deg, $primary, #a855f7);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    
+    @include mobile {
+      font-size: $font-xl;
+    }
+  }
+  
+  .archive-count {
+    font-size: $font-sm;
+    color: white;
+    background: linear-gradient(135deg, $primary, #a855f7);
+    padding: 0.25rem $font-xs;
+    border-radius: $radius-full;
+    font-weight: 600;
+  }
+  
+  .archive-articles {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-sm;
+  }
+  
+  .archive-item {
+    display: flex;
+    align-items: baseline;
+    gap: $spacing-md;
+    padding: $spacing-md;
+    background-color: var(--bg-secondary);
+    border-radius: $radius-md;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border-left: 3px solid transparent;
+    
+    @include mobile {
+      flex-direction: column;
+      gap: $spacing-xs;
+      align-items: flex-start;
+    }
+    
+    &:hover {
+      background-color: var(--bg-tertiary);
+      transform: translateX(8px);
+      border-left-color: $primary;
+      box-shadow: var(--shadow-sm);
+      
+      .article-title {
+        color: $primary;
+      }
+      
+      .article-date {
+        color: $primary;
+      }
+    }
+  }
+  
+  .article-date {
+    flex-shrink: 0;
+    font-size: $font-sm;
+    color: var(--text-tertiary);
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-weight: 600;
+    min-width: 100px;
+    transition: color 0.3s ease;
+    
+    @include mobile {
+      min-width: auto;
+    }
+  }
+  
+  .article-title {
+    font-size: $font-base;
+    color: var(--text-primary);
+    transition: color 0.3s ease;
+    line-height: 1.6;
+  }
+  
+  .empty-state {
+    text-align: center;
+    padding: $spacing-2xl;
+    color: var(--text-secondary);
+    font-size: $font-lg;
+    
+    p {
+      margin: 0;
+    }
+  }
+</style>

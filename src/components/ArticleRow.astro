@@ -1,0 +1,396 @@
+---
+import Button from "./Button.astro";
+
+interface Props {
+  slug: string;
+  title: string;
+  description?: string;
+  publishDate: Date;
+  category?: string;
+  tags?: string[];
+  heroImage?: string;
+  detailed?: boolean;
+  pinned?: boolean;
+}
+
+const {
+  slug,
+  title,
+  description,
+  publishDate,
+  category,
+  tags = [],
+  heroImage,
+  detailed = true,
+  pinned = false,
+} = Astro.props;
+
+const formattedDate = publishDate.toLocaleDateString("zh-CN", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+---
+
+<div class="article-row">
+  <a href={`/blog/${slug}`} class="article-link" data-astro-prefetch>
+    {
+      heroImage && detailed && (
+        <img class="cover-image" src={heroImage} alt={title} loading="lazy" />
+      )
+    }
+
+    <div class="article-content">
+      <div class="article-top">
+        {
+          detailed && category && (
+            <div class="article-meta">
+              <span class="meta-item">
+                <i class="fas fa-folder" />
+                {category}
+              </span>
+            </div>
+          )
+        }
+        <time class="article-date" datetime={publishDate.toISOString()}>
+          {formattedDate}
+        </time>
+      </div>
+
+      <div class="article-header">
+        <div class="article-title-wrapper">
+          <h2 class="article-title">
+            {pinned && <span class="pinned-badge">置顶</span>}
+            {title}
+          </h2>
+        </div>
+
+        <div class="article-arrow-wrapper">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="article-arrow"
+          >
+            <line x1="5" y1="12" x2="19" y2="12" class="arrow-line"></line>
+            <polyline points="12 5 19 12 12 19" class="arrow-head"></polyline>
+          </svg>
+        </div>
+      </div>
+
+      {
+        detailed && description && (
+          <p class="article-description">{description}</p>
+        )
+      }
+
+      {
+        detailed && tags.length > 0 && (
+          <object title="Tags" aria-label="Tags" aria-labelledby="Tags">
+            <ul class="article-tags">
+              {tags.map((tag) => (
+                <li>
+                  <Button
+                    as="a"
+                    title={tag}
+                    href={`/tags/${tag}`}
+                    variant="pill"
+                  />
+                </li>
+              ))}
+            </ul>
+          </object>
+        )
+      }
+    </div>
+  </a>
+</div>
+
+<style lang="scss">
+  @use "../styles/variables.scss" as *;
+
+  .article-row {
+    margin: 0;
+    padding: 0;
+  }
+
+  .article-link {
+    display: block;
+    position: relative;
+    padding: 1rem 1.25rem;
+    border-radius: $radius-lg;
+    border: 1px solid var(--border-color);
+    background: var(--card-bg);
+    text-decoration: none;
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+    overflow: hidden;
+
+    @media (min-width: 768px) {
+      padding: 1.25rem;
+    }
+
+    &:hover {
+      background: var(--hover-bg);
+      border-color: $primary;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+
+      .cover-image {
+        opacity: 0.7;
+      }
+
+      .article-title {
+        color: $primary;
+      }
+
+      .article-arrow {
+        stroke: $primary;
+      }
+
+      :global(.btn) {
+        background: $primary !important;
+        border-color: $primary !important;
+        color: white !important;
+      }
+    }
+
+    .cover-image {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 60%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.5;
+      border-radius: $radius-lg;
+      transition: opacity 0.3s ease;
+      z-index: 0;
+      -webkit-mask-image: linear-gradient(
+        to right,
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 1) 100%
+      );
+      mask-image: linear-gradient(
+        to right,
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 1) 100%
+      );
+
+      @media (max-width: 768px) {
+        width: 100%;
+        height: 66%;
+        -webkit-mask-image: linear-gradient(
+          to top,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 0, 0, 1) 100%
+        );
+        mask-image: linear-gradient(
+          to top,
+          rgba(0, 0, 0, 0) 0%,
+          rgba(0, 0, 0, 1) 100%
+        );
+      }
+    }
+
+    &:has(.cover-image) .article-content {
+      @media (max-width: 768px) {
+        padding-top: 6rem;
+      }
+    }
+
+    .article-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+
+      .article-top {
+        display: flex;
+        gap: 20px;
+        .article-meta {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          font-size: 0.875rem;
+          color: var(--text-secondary);
+          font-style: italic;
+
+          .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+
+            i {
+              font-size: 0.875rem;
+            }
+          }
+        }
+        .article-date {
+          font-size: $font-xs;
+          color: var(--text-secondary);
+          min-width: 95px;
+          display: block;
+        }
+      }
+
+      .article-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+
+        .article-title-wrapper {
+          flex: 1;
+          min-width: 0;
+
+          .article-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0;
+            color: var(--text-primary);
+            transition: color 0.3s ease;
+            line-height: 1.5;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+
+            @media (min-width: 768px) {
+              font-size: 1.1rem;
+            }
+
+            .pinned-badge {
+              display: inline-flex;
+              align-items: center;
+              padding: 0.125rem 0.5rem;
+              font-size: $font-xs;
+              font-weight: 600;
+              background: linear-gradient(135deg, #f12313, #e4ab9a);
+              color: white;
+              border-radius: $radius-sm;
+              white-space: nowrap;
+              animation: pulse 2s ease-in-out infinite;
+            }
+          }
+        }
+
+        .article-arrow-wrapper {
+          width: 32px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          background: rgba(212, 212, 212);
+          transition: all 0.3s ease;
+        }
+
+        .article-arrow {
+          flex-shrink: 0;
+          stroke: var(--text-secondary);
+          transition: stroke 0.3s ease;
+
+          .arrow-line {
+            transform: translateX(16px) scaleX(0);
+            transition: all 0.3s ease;
+          }
+
+          .arrow-head {
+            transform: translateX(0);
+            transition: all 0.3s ease;
+          }
+        }
+      }
+
+      .article-description {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin: 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+
+        @media (min-width: 768px) {
+          -webkit-line-clamp: 3;
+          margin-right: 6rem;
+        }
+      }
+
+      .article-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.25rem;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+
+        li {
+          display: inline-block;
+        }
+
+        .tag-pill {
+          display: inline-block;
+          padding: 0.25rem $font-xs;
+          font-size: $font-xs;
+          font-weight: 500;
+          color: var(--text-secondary);
+          background: var(--hover-bg);
+          border: 1px solid var(--border-color);
+          border-radius: $radius-full;
+          text-decoration: none;
+          transition: all 0.3s ease;
+          cursor: default;
+        }
+      }
+    }
+  }
+
+  :root[data-theme="dark"] {
+    .article-link:hover {
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.8;
+      transform: scale(0.98);
+    }
+  }
+</style>
+
+<script>
+  // 卡片 hover 时触发箭头动画
+  document.addEventListener("DOMContentLoaded", () => {
+    const articleLinks = document.querySelectorAll(".article-link");
+
+    articleLinks.forEach((link) => {
+      const arrowLine = link.querySelector(".arrow-line") as SVGElement;
+      const arrowHead = link.querySelector(".arrow-head") as SVGElement;
+
+      if (arrowLine && arrowHead) {
+        link.addEventListener("mouseenter", () => {
+          arrowLine.style.transform = "translateX(4px) scaleX(1)";
+          arrowHead.style.transform = "translateX(4px)";
+        });
+
+        link.addEventListener("mouseleave", () => {
+          arrowLine.style.transform = "";
+          arrowHead.style.transform = "";
+        });
+      }
+    });
+  });
+</script>

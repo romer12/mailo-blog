@@ -1,0 +1,735 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+
+export async function getStaticPaths() {
+  const blogEntries = await getCollection('blog', ({ data }) => {
+    return data.draft !== true;
+  });
+  
+  return blogEntries.map(entry => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content, headings } = await entry.render();
+
+// 格式化日期
+const formatDate = (date: Date) => {
+  return date.toLocaleDateString('zh-CN', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric'
+  });
+};
+---
+
+<Layout 
+  title={`${entry.data.title} - 止于秋水`}
+  description={entry.data.description || entry.data.title}
+  showSidebar={false}
+>
+  <div class="article-page">
+    <!-- 主内容区 -->
+    <article class="article-detail">
+      <!-- 文章头部 -->
+      <header class="article-header">
+        <h1 class="article-title">{entry.data.title}</h1>
+        
+        <div class="article-meta-wrapper">
+          <div class="article-meta">
+            <div class="meta-item author-info" style="display: none;">
+              <img 
+                src="https://ui-avatars.com/api/?name=止于秋水&background=6366f1&color=fff&size=32"
+                alt={entry.data.author}
+                class="author-avatar"
+              />
+              <span class="author-name">{entry.data.author}</span>
+            </div>
+            
+            <div class="meta-item meta-date">
+              <i class="far fa-calendar"></i>
+              <span>{formatDate(entry.data.publishDate)}</span>
+            </div>
+            
+            {entry.data.updatedDate && (
+              <div class="meta-item meta-updated">
+                <i class="far fa-clock"></i>
+                <span>更新于 {formatDate(entry.data.updatedDate)}</span>
+              </div>
+            )}
+            
+            {entry.data.category && (
+              <a href={`/categories/${entry.data.category}`} class="meta-item meta-category">
+                <i class="fas fa-folder"></i>
+                <span>{entry.data.category}</span>
+              </a>
+            )}
+          </div>
+          
+          {entry.data.tags && entry.data.tags.length > 0 && (
+            <div class="article-tags">
+              {entry.data.tags.map(tag => (
+                <a href={`/tags/${tag}`} class="tag">
+                  <i class="fas fa-tag"></i>
+                  {tag}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      </header>
+      
+      <!-- 文章内容 -->
+      <div class="article-content">
+        <Content />
+      </div>
+    </article>
+
+    <!-- 右侧目录 -->
+    {headings.length > 0 && (
+      <aside class="article-toc">
+        <div class="toc-wrapper">
+          <h3 class="toc-title">目录</h3>
+          <nav class="toc-content" id="toc">
+            <ul class="toc-list">
+              {headings.map((heading) => {
+                // 去掉标题前的编号（如 "1. ", "1.1 ", "第一章 " 等）
+                const cleanText = heading.text.replace(/^[\d\.]+\s+|^第[一二三四五六七八九十百千万]+[章节部分]\s+/g, '');
+                return (
+                  <li class={`toc-item toc-level-${heading.depth}`}>
+                    <a href={`#${heading.slug}`} class="toc-link">
+                      {cleanText}
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+        </div>
+      </aside>
+    )}
+  </div>
+</Layout>
+
+<script>
+  // 目录高亮和滚动监听
+  function setupTOC() {
+    const tocLinks = document.querySelectorAll('.toc-link');
+    const headings = document.querySelectorAll('.article-content h1, .article-content h2, .article-content h3, .article-content h4, .article-content h5, .article-content h6');
+    
+    if (tocLinks.length === 0 || headings.length === 0) return;
+    
+    // 点击目录项平滑滚动
+    tocLinks.forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetId = link.getAttribute('href')?.substring(1);
+        const target = document.getElementById(targetId || '');
+        
+        if (target) {
+          const yOffset = -100;
+          const y = target.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+          
+          // 更新高亮
+          tocLinks.forEach(l => l.classList.remove('active'));
+          link.classList.add('active');
+        }
+      });
+    });
+    
+    // 滚动监听自动高亮
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const id = entry.target.id;
+          const activeLink = document.querySelector(`.toc-link[href="#${id}"]`);
+          
+          if (activeLink) {
+            tocLinks.forEach(l => l.classList.remove('active'));
+            activeLink.classList.add('active');
+          }
+        }
+      });
+    }, {
+      rootMargin: '-100px 0px -80% 0px'
+    });
+    
+    headings.forEach(heading => observer.observe(heading));
+  }
+  
+  // 为所有代码块添加复制按钮
+  function setupCopyButtons() {
+    const preBlocks = document.querySelectorAll('.article-content pre');
+    
+    preBlocks.forEach((pre) => {
+      // 避免重复添加
+      if (pre.parentElement?.classList.contains('code-block-wrapper')) return;
+      
+      // 创建包装器
+      const wrapper = document.createElement('div');
+      wrapper.className = 'code-block-wrapper';
+      
+      // 将 pre 包装起来
+      pre.parentNode?.insertBefore(wrapper, pre);
+      wrapper.appendChild(pre);
+      
+      // 创建复制按钮
+      const copyButton = document.createElement('button');
+      copyButton.className = 'copy-button';
+      copyButton.innerHTML = '<i class="fas fa-copy"></i><span>复制</span>';
+      copyButton.setAttribute('aria-label', '复制代码');
+      
+      // 添加点击事件
+      copyButton.addEventListener('click', async () => {
+        const code = pre.querySelector('code');
+        const text = code?.textContent || '';
+        
+        try {
+          await navigator.clipboard.writeText(text);
+          
+          // 更改按钮状态
+          copyButton.innerHTML = '<i class="fas fa-check"></i><span>已复制</span>';
+          copyButton.classList.add('copied');
+          
+          // 2秒后恢复
+          setTimeout(() => {
+            copyButton.innerHTML = '<i class="fas fa-copy"></i><span>复制</span>';
+            copyButton.classList.remove('copied');
+          }, 2000);
+        } catch (err) {
+          console.error('复制失败:', err);
+          copyButton.innerHTML = '<i class="fas fa-times"></i><span>失败</span>';
+          
+          setTimeout(() => {
+            copyButton.innerHTML = '<i class="fas fa-copy"></i><span>复制</span>';
+          }, 2000);
+        }
+      });
+      
+      wrapper.appendChild(copyButton);
+    });
+  }
+  
+  // 页面加载完成后执行
+  document.addEventListener('DOMContentLoaded', () => {
+    setupCopyButtons();
+    setupTOC();
+  });
+</script>
+
+<style lang="scss">
+  @use '../../styles/variables.scss' as *;
+  
+  .article-page {
+    display: flex;
+    gap: $spacing-xl;
+    position: relative;
+    width: 100%;
+    
+    @media (max-width: 1200px) {
+      flex-direction: column;
+    }
+  }
+  
+  .article-detail {
+    flex: 1;
+    min-width: 0;
+    background-color: var(--bg-card);
+    border-radius: $radius-lg;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+  }
+  
+  .article-header {
+    padding: $spacing-2xl;
+    
+    @media (max-width: 768px) {
+      padding: $spacing-lg;
+    }
+  }
+  
+  .article-title {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.4;
+    margin-bottom: $spacing-lg;
+    color: var(--text-primary);
+    text-align: center;
+    
+    @media (max-width: 768px) {
+      font-size: 1.5rem;
+      text-align: left;
+    }
+  }
+  
+  .article-meta-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+    padding-bottom: $spacing-lg;
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .article-meta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-lg;
+    flex-wrap: wrap;
+    
+    @media (max-width: 768px) {
+      justify-content: flex-start;
+      gap: $spacing-md;
+    }
+  }
+  
+  .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    
+    i {
+      font-size: 0.85rem;
+    }
+  }
+  
+  .author-info {
+    gap: $spacing-xs;
+    
+    .author-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid var(--border-color);
+    }
+    
+    .author-name {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+  }
+  
+  .meta-category {
+    padding: 4px 12px;
+    background: rgba($primary, 0.1);
+    color: $primary;
+    border-radius: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      background: $primary;
+      color: white;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba($primary, 0.3);
+    }
+  }
+  
+  .article-tags {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: $spacing-sm;
+    
+    @media (max-width: 768px) {
+      justify-content: flex-start;
+    }
+  }
+  
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 14px;
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+    border-radius: 16px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    
+    i {
+      font-size: $font-xs;
+    }
+    
+    &:hover {
+      background: rgba($primary, 0.1);
+      color: $primary;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba($primary, 0.2);
+    }
+  }
+  
+  .article-content {
+    font-size: 1.05rem;
+    line-height: 1.8;
+    color: var(--text-primary);
+    padding: 0 $spacing-2xl $spacing-2xl;
+    
+    @media (max-width: 768px) {
+      padding: 0 $spacing-lg $spacing-lg;
+      font-size: 1rem;
+    }
+    
+    :global(h1), :global(h2), :global(h3), :global(h4), :global(h5), :global(h6) {
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      font-weight: 600;
+      line-height: 1.4;
+      color: var(--text-primary);
+      position: relative;
+      padding-left: $font-xs;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0.3em;
+        bottom: 0.3em;
+        width: 4px;
+        background: linear-gradient(to bottom, $primary, $secondary);
+        border-radius: 2px;
+      }
+    }
+    
+    :global(h1) { font-size: 2rem; }
+    :global(h2) { font-size: 1.75rem; }
+    :global(h3) { font-size: 1.5rem; }
+    :global(h4) { font-size: 1.25rem; }
+    
+    :global(p) {
+      margin-bottom: 1.25rem;
+      text-align: justify;
+    }
+    
+    :global(a) {
+      color: $primary;
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        color: $secondary;
+        border-bottom-color: $secondary;
+      }
+    }
+    
+    :global(img) {
+      max-width: 100%;
+      height: auto;
+      border-radius: $radius-lg;
+      margin: 1.5rem auto;
+      display: block;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    :global(code:not(pre code)) {
+      background: linear-gradient(135deg, rgba($primary, 0.1), rgba($secondary, 0.1));
+      padding: 0.2rem 0.5rem;
+      border-radius: $radius-sm;
+      font-size: 0.9em;
+      font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+      color: $primary;
+      font-weight: 500;
+    }
+    
+    :global(pre) {
+      position: relative;
+      background: #1e1e1e !important;
+      padding: 1.5rem !important;
+      border-radius: $radius-lg;
+      overflow-x: auto;
+      margin: 1.5rem 0 !important;
+      
+      code {
+        background: transparent !important;
+        padding: 0 !important;
+        font-family: 'Consolas', 'Monaco', 'Courier New', monospace !important;
+        font-size: 0.9em !important;
+        line-height: 1.6 !important;
+      }
+    }
+    
+    // 代码块复制按钮
+    :global(.code-block-wrapper) {
+      position: relative;
+      margin: 24px 0;
+
+      :global(pre) {
+        margin: 0 !important;
+      }
+
+      :global(.copy-button) {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        padding: 6px 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 6px;
+        color: #d4d4d4;
+        font-size: $font-xs;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        z-index: 10;
+
+        i {
+          font-size: 0.9em;
+        }
+
+        &:hover {
+          background: rgba(255, 255, 255, 0.2);
+          border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        &.copied {
+          background: rgba(16, 185, 129, 0.2);
+          border-color: rgba(16, 185, 129, 0.4);
+          color: #10b981;
+        }
+      }
+    }
+    
+    :global(blockquote) {
+      position: relative;
+      border-left: 4px solid $primary;
+      padding: 1rem 1.5rem;
+      margin: 1.5rem 0;
+      background: linear-gradient(135deg, rgba($primary, 0.05), rgba($secondary, 0.05));
+      border-radius: 0 $radius-md $radius-md 0;
+      color: var(--text-secondary);
+      font-style: italic;
+    }
+    
+    :global(ul), :global(ol) {
+      margin-bottom: 1.25rem;
+      padding-left: 2rem;
+    }
+    
+    :global(ul) {
+      list-style: none;
+      
+      li {
+        position: relative;
+        padding-left: 1.5rem;
+        margin-bottom: 0.5rem;
+        
+        &::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0.7em;
+          width: 6px;
+          height: 6px;
+          background: $primary;
+          border-radius: 50%;
+        }
+      }
+    }
+    
+    :global(ol) {
+      counter-reset: item;
+      
+      li {
+        position: relative;
+        padding-left: 1.5rem;
+        margin-bottom: 0.5rem;
+        counter-increment: item;
+        
+        &::before {
+          content: counter(item) ".";
+          position: absolute;
+          left: 0;
+          color: $primary;
+          font-weight: 600;
+        }
+      }
+    }
+    
+    :global(table) {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1.5rem 0;
+      border-radius: $radius-md;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    
+    :global(thead) {
+      background: linear-gradient(135deg, rgba($primary, 0.1), rgba($secondary, 0.1));
+    }
+    
+    :global(th), :global(td) {
+      border: 1px solid var(--border-color);
+      padding: 0.75rem 1rem;
+      text-align: left;
+    }
+    
+    :global(th) {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    :global(tbody tr) {
+      transition: background-color 0.2s ease;
+      
+      &:hover {
+        background-color: var(--bg-secondary);
+      }
+    }
+    
+    :global(hr) {
+      border: none;
+      height: 2px;
+      background: linear-gradient(to right, transparent, rgba($primary, 0.3), transparent);
+      margin: 2rem 0;
+    }
+  }
+  
+  :global(.copy-code-btn) {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 6px;
+    color: #abb2bf;
+    font-size: 1rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.3s ease;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:hover {
+      background: rgba(255, 255, 255, 0.2);
+      transform: scale(1.1);
+    }
+    
+    &.copied {
+      background: rgba(76, 175, 80, 0.3);
+      color: #4caf50;
+    }
+  }
+  
+  .article-toc {
+    width: 260px;
+    flex-shrink: 0;
+    
+    @media (max-width: 1200px) {
+      display: none;
+    }
+    
+    .toc-wrapper {
+      position: fixed;
+      top: 100px;
+      right: max(20px, calc((100vw - 1400px) / 2 + 20px));
+      width: 260px;
+      background: var(--bg-card);
+      border-radius: $radius-lg;
+      padding: $spacing-sm $spacing-lg ;
+      box-shadow: var(--shadow-sm);
+      max-height: calc(100vh - 200px);
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .toc-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: $spacing-md;
+      color: var(--text-primary);
+      padding-bottom: $spacing-sm;
+      border-bottom: 2px solid $primary;
+      flex-shrink: 0;
+    }
+    
+    .toc-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      margin: 0 (-$spacing-sm);
+      padding: 0 $spacing-sm;
+      
+      // 自定义滚动条
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: transparent;
+        border-radius: 3px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba($primary, 0.3);
+        border-radius: 3px;
+
+        &:hover {
+          background: rgba($primary, 0.5);
+        }
+      }
+      
+      // Firefox 滚动条
+      scrollbar-width: thin;
+      scrollbar-color: rgba($primary, 0.3) transparent;
+    }
+    
+    .toc-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    
+    .toc-item {
+      margin-bottom: $spacing-xs;
+      
+      &.toc-level-1 { margin-left: 0; }
+      &.toc-level-2 { margin-left: $spacing-md; }
+      &.toc-level-3 { margin-left: $spacing-lg; }
+      &.toc-level-4,
+      &.toc-level-5,
+      &.toc-level-6 { margin-left: $spacing-xl; }
+    }
+    
+    .toc-link {
+      display: block;
+      padding: $spacing-xs $spacing-sm;
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.9rem;
+      border-radius: $radius-sm;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      
+      &:hover {
+        color: $primary;
+        background: rgba($primary, 0.1);
+      }
+      
+      &.active {
+        color: $primary;
+        background: rgba($primary, 0.15);
+        font-weight: 600;
+      }
+    }
+  }
+</style>

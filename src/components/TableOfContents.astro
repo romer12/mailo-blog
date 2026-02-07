@@ -1,0 +1,370 @@
+---
+// 目录组件 - 用于文章详情页
+---
+
+<aside class="toc-container" id="tocContainer">
+  <div class="toc-header">
+    <h3>
+      <i class="fas fa-list"></i>
+      目录
+    </h3>
+  </div>
+  <nav class="toc-content" id="tocContent">
+    <p class="toc-loading">正在生成目录...</p>
+  </nav>
+</aside>
+
+<script>
+  interface TocItem {
+    depth: number;
+    slug: string;
+    text: string;
+    subheadings: TocItem[];
+  }
+
+  class TableOfContents {
+    private container: HTMLElement;
+    private content: HTMLElement;
+    private postContent: HTMLElement | null;
+    private activeLink: HTMLElement | null = null;
+    private headings: HTMLElement[] = [];
+
+    constructor() {
+      this.container = document.getElementById('tocContainer') as HTMLElement;
+      this.content = document.getElementById('tocContent') as HTMLElement;
+      this.postContent = document.querySelector('.post-content') as HTMLElement;
+
+      if (!this.container || !this.content || !this.postContent) {
+        return;
+      }
+
+      this.init();
+    }
+
+    init() {
+      // 生成目录
+      this.generateToc();
+
+      // 监听滚动事件，高亮当前标题
+      window.addEventListener('scroll', () => this.highlightActiveHeading());
+
+      // 初始高亮
+      this.highlightActiveHeading();
+    }
+
+    generateToc() {
+      const headings = this.postContent!.querySelectorAll('h1, h2, h3, h4, h5, h6');
+      
+      if (headings.length === 0) {
+        this.content.innerHTML = '<p class="toc-empty">暂无目录</p>';
+        return;
+      }
+
+      // 为每个标题添加 ID
+      headings.forEach((heading, index) => {
+        if (!heading.id) {
+          heading.id = `heading-${index}`;
+        }
+        this.headings.push(heading as HTMLElement);
+      });
+
+      // 构建目录树
+      const tocItems = this.buildTocTree(Array.from(headings) as HTMLElement[]);
+
+      // 渲染目录
+      this.content.innerHTML = this.renderTocItems(tocItems);
+
+      // 绑定点击事件
+      this.bindClickEvents();
+    }
+
+    buildTocTree(headings: HTMLElement[]): TocItem[] {
+      const root: TocItem = { depth: 0, slug: 'root', text: 'Root', subheadings: [] };
+      const stack: TocItem[] = [root];
+
+      headings.forEach((heading) => {
+        const depth = parseInt(heading.tagName.substring(1));
+        const text = heading.textContent || '';
+        const slug = heading.id;
+        
+        const tocItem: TocItem = {
+          depth,
+          slug,
+          text,
+          subheadings: []
+        };
+
+        // 找到正确的父级
+        while (stack[stack.length - 1].depth >= tocItem.depth) {
+          stack.pop();
+        }
+
+        // 添加到父级的子标题中
+        stack[stack.length - 1].subheadings.push(tocItem);
+        
+        // 推入栈中
+        stack.push(tocItem);
+      });
+
+      return root.subheadings;
+    }
+
+    renderTocItems(items: TocItem[]): string {
+      if (items.length === 0) {
+        return '<p class="toc-empty">暂无目录</p>';
+      }
+
+      const renderItem = (item: TocItem): string => {
+        const hasSubheadings = item.subheadings.length > 0;
+        const subheadingsHtml = hasSubheadings
+          ? `<ul class="toc-sublist">${item.subheadings.map(renderItem).join('')}</ul>`
+          : '';
+
+        return `
+          <li class="toc-item toc-level-${item.depth}">
+            <a href="#${item.slug}" class="toc-link" data-slug="${item.slug}" title="${item.text}">
+              ${item.text}
+            </a>
+            ${subheadingsHtml}
+          </li>
+        `;
+      };
+
+      return `<ul class="toc-list">${items.map(renderItem).join('')}</ul>`;
+    }
+
+    bindClickEvents() {
+      const links = this.content.querySelectorAll('.toc-link');
+      
+      links.forEach((link) => {
+        link.addEventListener('click', (e) => {
+          e.preventDefault();
+          const slug = (link as HTMLElement).dataset.slug;
+          const target = document.getElementById(slug!);
+          
+          if (target) {
+            const offset = 100; // 考虑固定头部的高度
+            const targetPosition = target.getBoundingClientRect().top + window.pageYOffset - offset;
+            
+            window.scrollTo({
+              top: targetPosition,
+              behavior: 'smooth'
+            });
+
+            // 更新 URL hash
+            history.pushState(null, '', `#${slug}`);
+          }
+        });
+      });
+    }
+
+    highlightActiveHeading() {
+      const scrollPosition = window.pageYOffset + 150;
+
+      // 找到当前可见的标题
+      let activeHeading: HTMLElement | null = null;
+      
+      for (let i = this.headings.length - 1; i >= 0; i--) {
+        const heading = this.headings[i];
+        if (heading.offsetTop <= scrollPosition) {
+          activeHeading = heading;
+          break;
+        }
+      }
+
+      if (!activeHeading && this.headings.length > 0) {
+        activeHeading = this.headings[0];
+      }
+
+      // 更新激活状态
+      if (activeHeading) {
+        const activeLink = this.content.querySelector(`[data-slug="${activeHeading.id}"]`);
+        
+        if (activeLink && activeLink !== this.activeLink) {
+          // 移除之前的激活状态
+          if (this.activeLink) {
+            this.activeLink.classList.remove('active');
+            this.activeLink.closest('.toc-item')?.classList.remove('active-item');
+          }
+
+          // 添加新的激活状态
+          activeLink.classList.add('active');
+          activeLink.closest('.toc-item')?.classList.add('active-item');
+          this.activeLink = activeLink as HTMLElement;
+
+          // 滚动到可见区域
+          activeLink.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+      }
+    }
+  }
+
+  // 初始化目录
+  document.addEventListener('DOMContentLoaded', () => {
+    new TableOfContents();
+  });
+</script>
+
+<style lang="scss">
+  @use '../styles/variables.scss' as *;
+
+  .toc-container {
+    position: sticky;
+    top: 80px;
+    width: 100%;
+    max-width: 280px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    background: var(--card-bg);
+    border-radius: $radius-lg;
+    padding: $spacing-md;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+
+    // 自定义滚动条
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: rgba($primary, 0.3);
+      border-radius: 3px;
+
+      &:hover {
+        background: rgba($primary, 0.5);
+      }
+    }
+  }
+
+  .toc-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid rgba($primary, 0.1);
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: $primary;
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      i {
+        font-size: 1rem;
+      }
+    }
+  }
+
+  .toc-content {
+    font-size: 0.9rem;
+  }
+
+  .toc-loading,
+  .toc-empty {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    text-align: center;
+    padding: 20px 0;
+    margin: 0;
+  }
+
+  .toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .toc-sublist {
+    list-style: none;
+    padding-left: 16px;
+    margin-top: 4px;
+  }
+
+  .toc-item {
+    position: relative;
+    margin-bottom: 2px;
+
+    // 圆点样式
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: rgba($primary, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    &:hover::before {
+      background: $primary;
+      transform: translateY(-50%) scale(1.3);
+    }
+  }
+
+  .toc-link {
+    display: block;
+    padding: 6px 0 6px 14px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    line-height: 1.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.9rem;
+
+    &:hover {
+      color: $primary;
+      padding-left: 18px;
+    }
+
+    &.active {
+      color: $primary;
+      font-weight: 600;
+      padding-left: 18px;
+    }
+  }
+
+  // 激活状态的父元素圆点样式
+  .toc-item.active-item::before {
+    background: $primary;
+    transform: translateY(-50%) scale(1.3);
+  }
+
+  // 不同层级的样式
+  .toc-level-1 {
+    .toc-link {
+      font-weight: 500;
+      font-size: 0.95rem;
+    }
+  }
+
+  .toc-level-2 {
+    .toc-link {
+      font-size: 0.875rem;
+    }
+  }
+
+  .toc-level-3,
+  .toc-level-4,
+  .toc-level-5,
+  .toc-level-6 {
+    .toc-link {
+      font-size: 0.85rem;
+    }
+  }
+
+  // 响应式
+  @media (max-width: 1024px) {
+    .toc-container {
+      display: none;
+    }
+  }
+</style>
