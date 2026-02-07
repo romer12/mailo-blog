@@ -1,5 +1,17 @@
+---
+title:"Flutter项目打包apk"
+description: "Flutter项目打包apk"
+publishDate: 2026-02-07
+updatedDate: 2026-02-07
+category: "Flutter"
+tags: ["flutter", "前端", "android"]
+author: "止于秋水"
+pinned: true
+---
 # 1.【生成签名】
+```bash
 keytool -genkey -v -keystore my-release-key.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000
+```
 
 上面的my-release-key.keystore和my-key-alias要记住，
 在之后的命令行中填写相关的信息
