@@ -12,7 +12,7 @@ const PORT = parseInt(process.env.PORT || '4321', 10);
 
 // https://astro.build/config
 export default defineConfig({
-    site: 'https://your-domain.com', // 替换为你的实际域名
+    site: 'https://romer.dpdns.org/', // 替换为你的实际域名
     output: 'static',
     integrations: [sitemap()],
     server: {
@@ -23,10 +23,13 @@ export default defineConfig({
         format: 'directory'
     },
     markdown: {
-        shikiConfig: {
-            theme: 'github-dark',
-            wrap: true
-        },
+        // Shiki代码高亮
+        // shikiConfig: {
+        //     theme: 'github-dark',
+        //     wrap: true
+        // },
+        // 禁用 Shiki代码高亮，切换到highlight.js高亮
+        syntaxHighlight: false,
         remarkPlugins: [],
         rehypePlugins: []
     }

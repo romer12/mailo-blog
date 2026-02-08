@@ -107,6 +107,31 @@ const isActive = (href: string) => {
   </nav>
 </header>
 
+<!-- 移动端抽屉式导航菜单 - 移到 header 外部 -->
+<div class="nav-mobile-drawer" id="mobileDrawer">
+  <div class="drawer-overlay" id="drawerOverlay"></div>
+  <div class="drawer-content">
+    <div class="drawer-header">
+      <span class="drawer-title">菜单</span>
+      <button class="drawer-close-btn" id="drawerCloseBtn" aria-label="关闭菜单">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+    <nav class="drawer-nav">
+      {navLinks.map(item => (
+        <a 
+          href={item.href}
+          class={`drawer-nav-link ${item.colorClass} ${isActive(item.href) ? 'active' : ''}`}
+        >
+          <i class={item.icon}></i>
+          <span class="nav-text">{item.name}</span>
+          {isActive(item.href) && <i class="fas fa-check active-icon"></i>}
+        </a>
+      ))}
+    </nav>
+  </div>
+</div>
+
 <script>  
   // 主题切换功能
   const themeToggle = document.getElementById('themeToggle');
@@ -187,19 +212,44 @@ const isActive = (href: string) => {
   
   // 移动端菜单切换
   const menuToggle = document.getElementById('menuToggle');
-  const navCenter = document.querySelector('.nav-center');
+  const mobileDrawer = document.getElementById('mobileDrawer');
+  const drawerOverlay = document.getElementById('drawerOverlay');
+  const drawerCloseBtn = document.getElementById('drawerCloseBtn');
+  
+  // 打开抽屉菜单
+  const openDrawer = () => {
+    mobileDrawer?.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  };
+  
+  // 关闭抽屉菜单
+  const closeDrawer = () => {
+    mobileDrawer?.classList.remove('active');
+    document.body.style.overflow = '';
+  };
   
   menuToggle?.addEventListener('click', () => {
-    // 在小屏幕下，切换导航菜单
     if (window.innerWidth <= 768) {
-      navCenter?.classList.toggle('mobile-active');
-      document.body.classList.toggle('scroll-disabled');
+      // 移动端：打开抽屉菜单
+      openDrawer();
     } else {
-      // 在中等屏幕下（768-1024px），切换侧边栏
+      // 平板端：切换侧边栏
       if (typeof (window as any).toggleSidebar === 'function') {
         (window as any).toggleSidebar();
       }
     }
+  });
+  
+  // 关闭按钮
+  drawerCloseBtn?.addEventListener('click', closeDrawer);
+  
+  // 点击遮罩层关闭
+  drawerOverlay?.addEventListener('click', closeDrawer);
+  
+  // 点击导航链接后关闭抽屉
+  const drawerLinks = document.querySelectorAll('.drawer-nav-link');
+  drawerLinks.forEach(link => {
+    link.addEventListener('click', closeDrawer);
   });
   
   // 搜索按钮 - 打开搜索弹层
@@ -677,46 +727,6 @@ const isActive = (href: string) => {
   @media (max-width: 768px) {
     .nav-center {
       display: none;
-      position: fixed;
-      top: 64px;
-      left: 0;
-      right: 0;
-      background: var(--surface);
-      flex-direction: column;
-      padding: $spacing-md;
-      box-shadow: $shadow-lg;
-      max-height: calc(100vh - 64px);
-      overflow-y: auto;
-
-      &.mobile-active {
-        display: flex;
-      }
-
-      .nav-link {
-        width: 100%;
-        justify-content: flex-start;
-        font-size: 1em;
-        padding: $spacing-md;
-
-        i {
-          display: inline-block !important;
-          font-size: 1.2em;
-        }
-        
-        // 移动端折叠菜单中去掉下划线效果
-        &::after {
-          display: none;
-        }
-        
-        &:hover {
-          background: var(--hover-bg);
-          border-radius: $radius-md;
-          
-          &::after {
-            display: none;
-          }
-        }
-      }
     }
 
     .nav-right {
@@ -763,6 +773,205 @@ const isActive = (href: string) => {
     }
   }
 
+  // 移动端抽屉式菜单
+  .nav-mobile-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10000;
+    pointer-events: none;
+    
+    &.active {
+      pointer-events: auto;
+      
+      .drawer-overlay {
+        opacity: 1;
+      }
+      
+      .drawer-content {
+        transform: translateX(0);
+      }
+    }
+    
+    .drawer-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      backdrop-filter: blur(4px);
+    }
+    
+    .drawer-content {
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 280px;
+      max-width: 80vw;
+      background: var(--surface);
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15);
+      transform: translateX(-100%);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: $spacing-lg $spacing-xl;
+      border-bottom: 1px solid var(--border-color);
+      background: linear-gradient(135deg, rgba($primary, 0.05), rgba($secondary, 0.05));
+      
+      .drawer-title {
+        font-size: 1.2em;
+        font-weight: 700;
+        background: linear-gradient(135deg, $primary, $secondary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      
+      .drawer-close-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--hover-bg);
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        
+        i {
+          font-size: 1.2em;
+        }
+        
+        &:hover {
+          background: rgba($primary, 0.1);
+          color: $primary;
+          transform: rotate(90deg);
+        }
+      }
+    }
+    
+    .drawer-nav {
+      flex: 1;
+      overflow-y: auto;
+      padding: $spacing-md 0;
+      
+      // 自定义滚动条
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background: rgba($primary, 0.3);
+        border-radius: 3px;
+
+        &:hover {
+          background: rgba($primary, 0.5);
+        }
+      }
+      
+      .drawer-nav-link {
+        display: flex;
+        align-items: center;
+        gap: $spacing-md;
+        padding: $spacing-md $spacing-xl;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 1em;
+        transition: all 0.3s ease;
+        position: relative;
+        
+        i:first-child {
+          font-size: 1.2em;
+          width: 24px;
+          text-align: center;
+          transition: transform 0.3s ease;
+        }
+        
+        .nav-text {
+          flex: 1;
+        }
+        
+        .active-icon {
+          font-size: 0.9em;
+          color: $primary;
+          margin-left: auto;
+        }
+        
+        &::before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 4px;
+          height: 0;
+          background: linear-gradient(to bottom, $primary, $secondary);
+          border-radius: 0 2px 2px 0;
+          transition: height 0.3s ease;
+        }
+        
+        &:hover {
+          background: var(--hover-bg);
+          color: $primary;
+          padding-left: calc($spacing-xl + 8px);
+          
+          &::before {
+            height: 60%;
+          }
+          
+          i:first-child {
+            transform: translateX(4px);
+          }
+        }
+        
+        &.active {
+          color: $primary;
+          font-weight: 600;
+          background: rgba($primary, 0.05);
+          
+          &::before {
+            height: 60%;
+          }
+        }
+        
+        // 图标颜色
+        &.home-link i:first-child { color: #4CAF50; }
+        &.blog-link i:first-child { color: #2196F3; }
+        &.archive-link i:first-child { color: #9C27B0; }
+        &.category-link i:first-child { color: #FF9800; }
+        &.tag-link i:first-child { color: #E91E63; }
+        &.messages-link i:first-child { color: #2196F3; }
+        &.friends-link i:first-child { color: #00BCD4; }
+        &.about-link i:first-child { color: #795548; }
+      }
+    }
+    
+    // 只在移动端显示
+    @media (min-width: 769px) {
+      display: none;
+    }
+  }
+
   @media screen and (max-width: 480px) {
     .nav-left .logo .logo-text {
       max-width: 120px;
@@ -792,8 +1001,10 @@ const isActive = (href: string) => {
     }
 
     // 深色模式下的图标颜色
-    .nav-link {
+    .nav-link,
+    .drawer-nav-link {
       &.home-link i { color: #81C784; }
+      &.blog-link i { color: #64B5F6; }
       &.archive-link i { color: #CE93D8; }
       &.clock-link i { color: #4DD0E1; }
       &.category-link i { color: #FFB74D; }
@@ -801,6 +1012,12 @@ const isActive = (href: string) => {
       &.messages-link i { color: #64B5F6; }
       &.friends-link i { color: #4DD0E1; }
       &.about-link i { color: #A1887F; }
+    }
+    
+    .nav-mobile-drawer {
+      .drawer-overlay {
+        background: rgba(0, 0, 0, 0.7);
+      }
     }
   }
 

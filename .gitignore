@@ -22,3 +22,5 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+WALINE_DEPLOYMENT_GUIDE.md

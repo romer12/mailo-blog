@@ -21,7 +21,7 @@ keytool -genkey -v -keystore my-release-key.keystore -alias my-key-alias -keyalg
 # 3.【在 项目目录/android创建配置文件key.properties】
 用于存放签名信息
 `key.properties`文件中输入以下代码（就是刚才填写的部分信息）：
-```
+```bash
 storePassword=123456
 keyPassword=123456
 keyAlias= my-key-test
@@ -31,7 +31,7 @@ storeFile= mykey.keystore
 # 4.【配置 build.gradle】
 打开你的 Flutter 项目中的 android/app/build.gradle 文件
 在 android 区域中添加签名配置：
-```
+```dart
 // 添加以下几行
 def keystoreProperties = new Properties()
 def keystorePropertiesFile = rootProject.file('key.properties')
@@ -63,4 +63,4 @@ android {
 
 # 5.【使用命令打包】
 以android为例
-使用flutter build apk --release将程序打包成apk即可安装使用，打包完成后命令行会显示apk文件所在的路径
+使用`flutter build apk --release`将程序打包成apk即可安装使用，打包完成后命令行会显示apk文件所在的路径

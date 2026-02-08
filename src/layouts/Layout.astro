@@ -6,6 +6,7 @@ import TableOfContents from '../components/TableOfContents.astro';
 import Search from '../components/Search.astro';
 import { getCollection } from 'astro:content';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+import 'highlight.js/styles/github-dark.css';
 
 interface Props {
   title?: string;
@@ -199,7 +200,6 @@ const fullTitle = title === '止于秋水' ? title : `${title} - 止于秋水`;
 	body {
 		margin: 0;
 		padding: 0;
-		overflow-x: hidden;
 		max-width: 100vw;
 	}
 
@@ -211,7 +211,6 @@ const fullTitle = title === '止于秋水' ? title : `${title} - 止于秋水`;
 		display: flex;
 		flex-direction: column;
 		background: var(--background);
-		overflow-x: hidden;
 	}
 
 	.app-content {
@@ -259,7 +258,7 @@ const fullTitle = title === '止于秋水' ? title : `${title} - 止于秋水`;
 	// 浮动按钮组
 	.float-buttons {
 		position: fixed;
-		bottom: 2rem;
+		bottom: 6rem;
 		right: 2rem;
 		display: flex;
 		flex-direction: column;
@@ -267,7 +266,7 @@ const fullTitle = title === '止于秋水' ? title : `${title} - 止于秋水`;
 		z-index: 999;
 		
 		@media (max-width: 768px) {
-			bottom: 1.5rem;
+			bottom: 4rem;
 			right: 1.5rem;
 			gap: 0.5rem;
 		}
@@ -330,22 +329,8 @@ const fullTitle = title === '止于秋水' ? title : `${title} - 止于秋水`;
 	}
 	
 	.back-to-top {
-		&.visible {
-			animation: bounceIn 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-		}
-	}
-	
-	@keyframes bounceIn {
-		0% {
-			opacity: 0;
-			transform: translateY(20px) scale(0.8);
-		}
-		50% {
-			transform: translateY(-5px) scale(1.05);
-		}
-		100% {
-			opacity: 1;
-			transform: translateY(0) scale(1);
+		&:hover {
+			transform: translateY(-4px);
 		}
 	}
 </style>
