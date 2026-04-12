@@ -20,7 +20,7 @@ export const getStaticPaths = (async ({ paginate }) => {
 	});
 
 	// 每页显示3篇文章
-	return paginate(posts, { pageSize: 3 });
+	return paginate(posts, { pageSize: 10 });
 }) satisfies GetStaticPaths;
 
 const { page } = Astro.props as { page: Page };
